@@ -5,6 +5,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 
 import { Cities } from './src/collections/Cities'
+import { Forms } from './src/collections/Forms'
 import { Media } from './src/collections/Media'
 import { Pages } from './src/collections/Pages'
 import { Products } from './src/collections/Products'
@@ -33,6 +34,7 @@ export default buildConfig({
     Schools,
     Seasons,
     Products,
+    Forms,
     Registrations,
     Waitlist,
   ],

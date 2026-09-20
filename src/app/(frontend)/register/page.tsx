@@ -80,6 +80,24 @@ export default async function RegisterPage() {
       const seasonId = getId(v.season)
       const key = `${product.id}-${schoolId}-${seasonId}`
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const form = (product as any).registrationForm as any
+      const perStudentFields: RegisterPageData['variations'][number]['perStudentFields'] =
+        Array.isArray(form?.perStudentFields) && form.perStudentFields.length > 0
+          ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            form.perStudentFields.map((f: any) => ({
+              label: f.label ?? '',
+              fieldName: f.fieldName ?? '',
+              fieldType: (f.fieldType ?? 'text') as 'text' | 'number' | 'select' | 'checkbox',
+              required: f.required ?? false,
+              placeholder: f.placeholder || undefined,
+              selectOptions: Array.isArray(f.selectOptions)
+                ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  f.selectOptions.map((o: any) => ({ label: o.label ?? '', value: o.value ?? '' }))
+                : undefined,
+            }))
+          : null
+
       variations.push({
         variationKey: key,
         productId: product.id,
@@ -92,6 +110,7 @@ export default async function RegisterPage() {
         enrolled: enrolledMap.get(key) ?? 0,
         dayOfWeek: v.dayOfWeek || undefined,
         timeSlot: v.timeSlot || undefined,
+        perStudentFields,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         checkoutFields: (product.checkoutFields ?? []).map((f: any) => ({
           label: f.label,

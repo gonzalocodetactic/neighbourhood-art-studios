@@ -18,9 +18,11 @@ export type WaitlistInput = {
 
 export type Student = {
   firstName: string
-  lastName: string
+  lastName?: string
   age?: string
   gender?: string
+  teacherName?: string
+  divisionNumber?: string
 }
 
 export type CheckoutAnswer = {
@@ -181,9 +183,11 @@ export async function submitRegistration(
         emergencyContactPhone: data.emergencyContactPhone,
         students: data.students.map((s) => ({
           firstName: s.firstName,
-          lastName: s.lastName,
-          ...(s.age    ? { age: s.age }       : {}),
-          ...(s.gender ? { gender: s.gender } : {}),
+          ...(s.lastName       ? { lastName: s.lastName }             : {}),
+          ...(s.age            ? { age: s.age }                       : {}),
+          ...(s.gender         ? { gender: s.gender }                 : {}),
+          ...(s.teacherName    ? { teacherName: s.teacherName }       : {}),
+          ...(s.divisionNumber ? { divisionNumber: s.divisionNumber } : {}),
         })),
         school: data.schoolId,
         season: data.seasonId,

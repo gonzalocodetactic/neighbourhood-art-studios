@@ -5,6 +5,19 @@ export const Products: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'updatedAt'],
+    components: {
+      views: {
+        edit: {
+          bulkGenerator: {
+            Component: '/src/components/products/BulkVariationGenerator#BulkVariationGenerator',
+            path: '/bulk-generator',
+            tab: {
+              label: 'Bulk Generator',
+            },
+          },
+        },
+      },
+    },
   },
   fields: [
     {
@@ -79,6 +92,16 @@ export const Products: CollectionConfig = {
           },
         },
       ],
+    },
+    {
+      name: 'registrationForm',
+      type: 'relationship',
+      relationTo: 'forms',
+      label: 'Registration Form',
+      admin: {
+        description: 'Defines dynamic per-student fields in the registration modal. Leave blank to use defaults (Age, Gender, Teacher Name, Division).',
+        position: 'sidebar',
+      },
     },
     {
       name: 'checkoutFields',

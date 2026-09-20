@@ -56,19 +56,14 @@ export const Registrations: CollectionConfig = {
       minRows: 1,
       fields: [
         {
-          type: 'row',
-          fields: [
-            {
-              name: 'firstName',
-              type: 'text',
-              required: true,
-            },
-            {
-              name: 'lastName',
-              type: 'text',
-              required: true,
-            },
-          ],
+          name: 'firstName',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'lastName',
+          type: 'text',
+          admin: { hidden: true },
         },
         {
           name: 'age',
@@ -86,6 +81,18 @@ export const Registrations: CollectionConfig = {
             { label: 'Non-binary', value: 'non-binary' },
             { label: 'Prefer not to say', value: 'prefer-not-to-say' },
           ],
+        },
+        {
+          name: 'teacherName',
+          type: 'text',
+          label: 'Teacher Name',
+          admin: { placeholder: 'e.g. Ms. Johnson' },
+        },
+        {
+          name: 'divisionNumber',
+          type: 'text',
+          label: 'Division Number',
+          admin: { placeholder: 'e.g. Div. 4' },
         },
       ],
     },

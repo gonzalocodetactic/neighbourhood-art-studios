@@ -21,6 +21,14 @@ export type RegisterPageData = {
     enrolled: number
     dayOfWeek?: string
     timeSlot?: string
+    perStudentFields: Array<{
+      label: string
+      fieldName: string
+      fieldType: 'text' | 'number' | 'select' | 'checkbox'
+      required: boolean
+      placeholder?: string
+      selectOptions?: Array<{ label: string; value: string }>
+    }> | null
     checkoutFields: Array<{ label: string; fieldType: string; required: boolean }>
   }>
 }
@@ -262,12 +270,25 @@ function ProgramCard({
 
 // ── Registration modal ─────────────────────────────────────────────────────────
 
-const EMPTY_STUDENT: Student = {
-  firstName: '',
-  lastName: '',
-  age: '',
-  gender: '',
-}
+const DEFAULT_STUDENT_FIELDS: NonNullable<RegisterPageData['variations'][number]['perStudentFields']> = [
+  { label: 'Age', fieldName: 'age', fieldType: 'text', required: false, placeholder: 'e.g. 8' },
+  {
+    label: 'Gender',
+    fieldName: 'gender',
+    fieldType: 'select',
+    required: false,
+    selectOptions: [
+      { label: 'Boy', value: 'boy' },
+      { label: 'Girl', value: 'girl' },
+      { label: 'Non-binary', value: 'non-binary' },
+      { label: 'Prefer not to say', value: 'prefer-not-to-say' },
+    ],
+  },
+  { label: 'Teacher Name', fieldName: 'teacherName', fieldType: 'text', required: false, placeholder: 'e.g. Ms. Johnson' },
+  { label: 'Division', fieldName: 'divisionNumber', fieldType: 'text', required: false, placeholder: 'e.g. Div. 4' },
+]
+
+const EMPTY_STUDENT: Record<string, string> = { firstName: '' }
 
 function RegistrationModal({
   variation,
@@ -289,8 +310,10 @@ function RegistrationModal({
   const [ecName, setEcName]                   = useState('')
   const [ecPhone, setEcPhone]                 = useState('')
 
-  // Students
-  const [students, setStudents] = useState<Student[]>([{ ...EMPTY_STUDENT }])
+  const studentFields = variation.perStudentFields ?? DEFAULT_STUDENT_FIELDS
+
+  // Students — keyed Record so dynamic fields work uniformly
+  const [students, setStudents] = useState<Record<string, string>[]>([{ ...EMPTY_STUDENT }])
 
   // Dynamic checkout answers — keyed by field label
   const [answers, setAnswers] = useState<Record<string, string>>(() =>
@@ -299,7 +322,7 @@ function RegistrationModal({
 
   const addStudent = () => setStudents((prev) => [...prev, { ...EMPTY_STUDENT }])
   const removeStudent = (idx: number) => setStudents((prev) => prev.filter((_, i) => i !== idx))
-  const updateStudent = (idx: number, field: keyof Student, val: string) => {
+  const updateStudent = (idx: number, field: string, val: string) => {
     setStudents((prev) => prev.map((s, i) => (i === idx ? { ...s, [field]: val } : s)))
   }
 
@@ -323,9 +346,10 @@ function RegistrationModal({
       emergencyContactPhone: ecPhone || undefined,
       students: students.map((s) => ({
         firstName: s.firstName,
-        lastName:  s.lastName,
-        ...(s.age    ? { age: s.age }       : {}),
-        ...(s.gender ? { gender: s.gender } : {}),
+        ...(s.age            ? { age: s.age }                       : {}),
+        ...(s.gender         ? { gender: s.gender }                 : {}),
+        ...(s.teacherName    ? { teacherName: s.teacherName }       : {}),
+        ...(s.divisionNumber ? { divisionNumber: s.divisionNumber } : {}),
       })),
       schoolId:  variation.schoolId,
       seasonId:  variation.seasonId,
@@ -466,44 +490,55 @@ function RegistrationModal({
                   <p className="text-xs font-semibold text-gray-500">
                     Student {idx + 1}
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      required
-                      type="text"
-                      placeholder="First name *"
-                      value={student.firstName}
-                      onChange={(e) => updateStudent(idx, 'firstName', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
-                    />
-                    <input
-                      required
-                      type="text"
-                      placeholder="Last name *"
-                      value={student.lastName}
-                      onChange={(e) => updateStudent(idx, 'lastName', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Age (e.g. 8)"
-                      value={student.age ?? ''}
-                      onChange={(e) => updateStudent(idx, 'age', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
-                    />
-                    <select
-                      value={student.gender ?? ''}
-                      onChange={(e) => updateStudent(idx, 'gender', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8] bg-white"
-                    >
-                      <option value="">Gender (optional)</option>
-                      <option value="boy">Boy</option>
-                      <option value="girl">Girl</option>
-                      <option value="non-binary">Non-binary</option>
-                      <option value="prefer-not-to-say">Prefer not to say</option>
-                    </select>
-                  </div>
+                  <input
+                    required
+                    type="text"
+                    placeholder="First name *"
+                    value={student.firstName ?? ''}
+                    onChange={(e) => updateStudent(idx, 'firstName', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+                  />
+                  {studentFields.map((field) => (
+                    <div key={field.fieldName}>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                      </label>
+                      {field.fieldType === 'select' ? (
+                        <select
+                          required={field.required}
+                          value={student[field.fieldName] ?? ''}
+                          onChange={(e) => updateStudent(idx, field.fieldName, e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8] bg-white"
+                        >
+                          <option value="">{field.label} (optional)</option>
+                          {field.selectOptions?.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      ) : field.fieldType === 'checkbox' ? (
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            required={field.required}
+                            checked={student[field.fieldName] === 'true'}
+                            onChange={(e) => updateStudent(idx, field.fieldName, e.target.checked ? 'true' : 'false')}
+                            className="w-4 h-4 text-[#3B4BC8] rounded border-gray-300 focus:ring-[#3B4BC8]"
+                          />
+                          <span className="text-sm text-gray-600">Yes</span>
+                        </label>
+                      ) : (
+                        <input
+                          type={field.fieldType === 'number' ? 'number' : 'text'}
+                          required={field.required}
+                          placeholder={field.placeholder ?? ''}
+                          value={student[field.fieldName] ?? ''}
+                          onChange={(e) => updateStudent(idx, field.fieldName, e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
