@@ -51,6 +51,11 @@ export const Waitlist: CollectionConfig = {
           name: 'dateOfBirth',
           type: 'date',
         },
+        {
+          name: 'grade',
+          type: 'text',
+          label: 'Grade',
+        },
       ],
     },
     {

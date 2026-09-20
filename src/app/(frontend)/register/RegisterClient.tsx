@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { submitRegistration, type CheckoutAnswer, type RegistrationInput, type Student } from './actions'
+import { submitRegistration, submitWaitlist, type CheckoutAnswer, type RegistrationInput, type Student, type WaitlistInput } from './actions'
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -168,9 +168,11 @@ function SchoolSearch({
 function ProgramCard({
   variation,
   onRegister,
+  onWaitlist,
 }: {
   variation: Variation
   onRegister: (v: Variation) => void
+  onWaitlist: (v: Variation) => void
 }) {
   const spotsLeft = variation.capacity - variation.enrolled
   const isFull = spotsLeft <= 0
@@ -240,10 +242,10 @@ function ProgramCard({
       <div className="mt-5">
         {isFull ? (
           <button
-            disabled
-            className="w-full py-2.5 text-sm font-semibold text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed"
+            onClick={() => onWaitlist(variation)}
+            className="w-full py-2.5 text-sm font-semibold text-white bg-gray-800 rounded-lg hover:bg-gray-900 active:scale-[0.98] transition-all"
           >
-            Program Full
+            Join Waitlist
           </button>
         ) : (
           <button
@@ -548,6 +550,174 @@ function RegistrationModal({
   )
 }
 
+// ── Waitlist modal ────────────────────────────────────────────────────────────
+
+function WaitlistModal({
+  variation,
+  onClose,
+  onSuccess,
+}: {
+  variation: Variation
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  const [parentName, setParentName] = useState('')
+  const [parentEmail, setParentEmail] = useState('')
+  const [parentPhone, setParentPhone] = useState('')
+  const [studentFirstName, setStudentFirstName] = useState('')
+  const [studentLastName, setStudentLastName] = useState('')
+  const [grade, setGrade] = useState('')
+  const [notes, setNotes] = useState('')
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const input: WaitlistInput = {
+      parentName,
+      parentEmail,
+      parentPhone,
+      studentFirstName,
+      studentLastName,
+      grade,
+      notes: notes || undefined,
+      schoolId: variation.schoolId,
+      seasonId: variation.seasonId,
+      productId: variation.productId,
+    }
+
+    startTransition(async () => {
+      const result = await submitWaitlist(input)
+      if (result.success) {
+        onSuccess()
+      } else {
+        setError(result.error)
+      }
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl mx-4">
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Georgia, serif' }}>
+              Join Waitlist
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {variation.productTitle} · We'll contact you when a spot opens
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
+              Parent / Guardian
+            </h3>
+            <div className="space-y-3">
+              <input
+                required
+                type="text"
+                placeholder="Full name *"
+                value={parentName}
+                onChange={(e) => setParentName(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+              />
+              <input
+                required
+                type="email"
+                placeholder="Email address *"
+                value={parentEmail}
+                onChange={(e) => setParentEmail(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+              />
+              <input
+                required
+                type="tel"
+                placeholder="Phone number *"
+                value={parentPhone}
+                onChange={(e) => setParentPhone(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+              />
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
+              Student
+            </h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  required
+                  type="text"
+                  placeholder="First name *"
+                  value={studentFirstName}
+                  onChange={(e) => setStudentFirstName(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+                />
+                <input
+                  required
+                  type="text"
+                  placeholder="Last name *"
+                  value={studentLastName}
+                  onChange={(e) => setStudentLastName(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+                />
+              </div>
+              <input
+                required
+                type="text"
+                placeholder="Grade (e.g. Grade 3) *"
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+              />
+              <textarea
+                placeholder="Any notes (allergies, special requirements…)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8] resize-none"
+              />
+            </div>
+          </section>
+
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={isPending}
+            className="w-full py-3 text-sm font-bold text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+          >
+            {isPending ? 'Joining Waitlist…' : 'Join Waitlist'}
+          </button>
+
+          <p className="text-[11px] text-center text-gray-400">
+            We'll notify you by email when a spot becomes available.
+          </p>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Main client component ─────────────────────────────────────────────────────
 
 export default function RegisterClient({
@@ -560,7 +730,9 @@ export default function RegisterClient({
   const [schoolId, setSchoolId] = useState('')
   const [seasonId, setSeasonId] = useState('')
   const [modalVariation, setModalVariation] = useState<Variation | null>(null)
+  const [waitlistVariation, setWaitlistVariation] = useState<Variation | null>(null)
   const [registrationSuccess, setRegistrationSuccess] = useState(false)
+  const [waitlistSuccess, setWaitlistSuccess] = useState(false)
 
   const filteredSchools = schools.filter((s) => String(s.cityId) === cityId)
 
@@ -606,7 +778,7 @@ export default function RegisterClient({
         {/* Step tracker */}
         <StepIndicator active={step} />
 
-        {/* Success banner */}
+        {/* Registration success banner */}
         {registrationSuccess && (
           <div className="mb-8 p-5 bg-green-50 border border-green-200 rounded-xl text-center">
             <p className="text-2xl mb-2">🎉</p>
@@ -624,6 +796,28 @@ export default function RegisterClient({
               className="mt-4 text-sm font-semibold text-green-700 underline hover:text-green-900"
             >
               Register another student
+            </button>
+          </div>
+        )}
+
+        {/* Waitlist success banner */}
+        {waitlistSuccess && (
+          <div className="mb-8 p-5 bg-amber-50 border border-amber-200 rounded-xl text-center">
+            <p className="text-2xl mb-2">📋</p>
+            <p className="text-base font-bold text-amber-800">Added to Waitlist!</p>
+            <p className="text-sm text-amber-700 mt-1">
+              We'll contact you as soon as a spot opens up.
+            </p>
+            <button
+              onClick={() => {
+                setWaitlistSuccess(false)
+                setCityId('')
+                setSchoolId('')
+                setSeasonId('')
+              }}
+              className="mt-4 text-sm font-semibold text-amber-700 underline hover:text-amber-900"
+            >
+              Back to programs
             </button>
           </div>
         )}
@@ -720,7 +914,7 @@ export default function RegisterClient({
             ) : (
               <div className="grid gap-4">
                 {matchingVariations.map((v) => (
-                  <ProgramCard key={v.variationKey} variation={v} onRegister={setModalVariation} />
+                  <ProgramCard key={v.variationKey} variation={v} onRegister={setModalVariation} onWaitlist={setWaitlistVariation} />
                 ))}
               </div>
             )}
@@ -736,6 +930,19 @@ export default function RegisterClient({
           onSuccess={() => {
             setModalVariation(null)
             setRegistrationSuccess(true)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+        />
+      )}
+
+      {/* Waitlist modal */}
+      {waitlistVariation && (
+        <WaitlistModal
+          variation={waitlistVariation}
+          onClose={() => setWaitlistVariation(null)}
+          onSuccess={() => {
+            setWaitlistVariation(null)
+            setWaitlistSuccess(true)
             window.scrollTo({ top: 0, behavior: 'smooth' })
           }}
         />

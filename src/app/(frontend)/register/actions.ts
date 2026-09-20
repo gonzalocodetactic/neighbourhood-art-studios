@@ -3,6 +3,19 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 
+export type WaitlistInput = {
+  parentName: string
+  parentEmail: string
+  parentPhone: string
+  studentFirstName: string
+  studentLastName: string
+  grade: string
+  notes?: string
+  schoolId: number | string
+  seasonId: number | string
+  productId: number | string
+}
+
 export type Student = {
   firstName: string
   lastName: string
@@ -25,6 +38,41 @@ export type RegistrationInput = {
   seasonId: number | string
   productId: number | string
   checkoutAnswers: CheckoutAnswer[]
+}
+
+export async function submitWaitlist(
+  data: WaitlistInput,
+): Promise<{ success: true; id: number | string } | { success: false; error: string }> {
+  try {
+    const payload = await getPayload({ config: configPromise })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const created = await payload.create({
+      collection: 'waitlist',
+      data: {
+        parentName: data.parentName,
+        parentEmail: data.parentEmail,
+        parentPhone: data.parentPhone,
+        students: [
+          {
+            firstName: data.studentFirstName,
+            lastName: data.studentLastName,
+            grade: data.grade,
+          },
+        ],
+        school: data.schoolId,
+        season: data.seasonId,
+        product: data.productId,
+        status: 'waiting',
+        ...(data.notes ? { notes: data.notes } : {}),
+      } as any,
+    })
+
+    return { success: true, id: created.id }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return { success: false, error: message }
+  }
 }
 
 export async function submitRegistration(
