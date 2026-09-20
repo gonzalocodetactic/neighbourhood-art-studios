@@ -90,6 +90,8 @@ export default async function RegisterPage() {
         price: v.price ?? 0,
         capacity: v.capacity ?? 20,
         enrolled: enrolledMap.get(key) ?? 0,
+        dayOfWeek: v.dayOfWeek || undefined,
+        timeSlot: v.timeSlot || undefined,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         checkoutFields: (product.checkoutFields ?? []).map((f: any) => ({
           label: f.label,

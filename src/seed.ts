@@ -40,44 +40,18 @@ const PRODUCT_SCHOOLS = [
   'Bayview Elementary',
 ]
 
-// Seasons that will receive variations
-const PRODUCT_SEASONS = ['Fall 2022', 'Fall 2024', 'Fall 2025', 'Fall 2026']
+// Active season for product variations
+const PRODUCT_SEASONS = ['Fall 2026']
 
-// [schoolTitle, seasonTitle] pairs per product
-const DRAWING_PAIRS: [string, string][] = [
-  // Cameron (Burnaby) — span all four target seasons
-  ['Cameron', 'Fall 2022'],
-  ['Cameron', 'Fall 2024'],
-  ['Cameron', 'Fall 2025'],
+// [schoolTitle, seasonTitle] pairs — one per school, all anchored to Fall 2026
+const ART_PAIRS: [string, string][] = [
   ['Cameron', 'Fall 2026'],
-  // Additional Burnaby schools
-  ['Armstrong', 'Fall 2025'],
   ['Armstrong', 'Fall 2026'],
-  // One other city per remaining group
-  ['Annieville', 'Fall 2025'],
-  ['Annieville', 'Fall 2026'],
-  ['Alex Hope Elementary', 'Fall 2025'],
-  ['Alex Hope Elementary', 'Fall 2026'],
-  ['Anderson', 'Fall 2025'],
-  ['Anderson', 'Fall 2026'],
-  ['Bear Creek', 'Fall 2025'],
-  ['Bear Creek', 'Fall 2026'],
-  ['Bayview Elementary', 'Fall 2025'],
-  ['Bayview Elementary', 'Fall 2026'],
-]
-
-const CLAY_PAIRS: [string, string][] = [
-  ['Cameron', 'Fall 2025'],
-  ['Cameron', 'Fall 2026'],
-  ['Aubrey', 'Fall 2025'],
   ['Aubrey', 'Fall 2026'],
-  ['Annieville', 'Fall 2025'],
   ['Annieville', 'Fall 2026'],
   ['Alex Hope Elementary', 'Fall 2026'],
-  ['Anderson', 'Fall 2025'],
   ['Anderson', 'Fall 2026'],
   ['Bear Creek', 'Fall 2026'],
-  ['Bayview Elementary', 'Fall 2025'],
   ['Bayview Elementary', 'Fall 2026'],
 ]
 
@@ -214,18 +188,26 @@ async function main() {
     })
   }
 
+  // Remove legacy products replaced by the master offering
+  const LEGACY_TITLES = ['After-School Drawing & Painting', 'Clay & Sculpting Workshop']
+  for (const legacyTitle of LEGACY_TITLES) {
+    const found = await payload.find({
+      collection: 'products',
+      where: { title: { equals: legacyTitle } },
+      limit: 1,
+    })
+    if (found.docs.length > 0) {
+      await payload.delete({ collection: 'products', id: found.docs[0].id })
+      console.log(`  product [del]  ${legacyTitle}`)
+    }
+  }
+
   const productDefs = [
     {
-      title: 'After-School Drawing & Painting',
+      title: 'Art Classes At Your School',
       price: 18000, // $180.00 CAD (stored as cents)
       capacity: 20,
-      pairs: DRAWING_PAIRS,
-    },
-    {
-      title: 'Clay & Sculpting Workshop',
-      price: 21000, // $210.00 CAD
-      capacity: 15,
-      pairs: CLAY_PAIRS,
+      pairs: ART_PAIRS,
     },
   ]
 

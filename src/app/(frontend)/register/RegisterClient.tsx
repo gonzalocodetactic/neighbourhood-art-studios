@@ -19,6 +19,8 @@ export type RegisterPageData = {
     price: number
     capacity: number
     enrolled: number
+    dayOfWeek?: string
+    timeSlot?: string
     checkoutFields: Array<{ label: string; fieldType: string; required: boolean }>
   }>
 }
@@ -198,6 +200,21 @@ function ProgramCard({
           </span>
         )}
       </div>
+
+      {(variation.dayOfWeek || variation.timeSlot) && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {variation.dayOfWeek && (
+            <span className="px-2 py-1 text-xs font-medium text-[#3B4BC8] bg-[#3B4BC8]/10 rounded-full">
+              {variation.dayOfWeek}
+            </span>
+          )}
+          {variation.timeSlot && (
+            <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full">
+              {variation.timeSlot}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Capacity bar */}
       <div className="mt-4">
@@ -563,7 +580,8 @@ export default function RegisterClient({
   }
   function handleSchoolChange(id: string) {
     setSchoolId(id)
-    setSeasonId('')
+    const fall2026 = seasons.find((s) => s.title === 'Fall 2026')
+    setSeasonId(fall2026 ? String(fall2026.id) : '')
   }
 
   return (

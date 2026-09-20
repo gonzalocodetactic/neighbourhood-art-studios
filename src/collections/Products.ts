@@ -60,6 +60,24 @@ export const Products: CollectionConfig = {
             description: 'Maximum number of students for this variation.',
           },
         },
+        {
+          name: 'dayOfWeek',
+          type: 'text',
+          label: 'Day of Week',
+          admin: {
+            placeholder: 'e.g. Tuesday',
+            description: 'Optional: the day this class runs.',
+          },
+        },
+        {
+          name: 'timeSlot',
+          type: 'text',
+          label: 'Time Slot',
+          admin: {
+            placeholder: 'e.g. 3:30 PM – 4:30 PM',
+            description: 'Optional: the time window for this class.',
+          },
+        },
       ],
     },
     {
