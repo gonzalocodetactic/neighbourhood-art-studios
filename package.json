@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "node --require ./src/seed-preload.cjs --require tsx/cjs src/seed.ts"
   },
   "dependencies": {
     "@payloadcms/db-sqlite": "^3.90.1",

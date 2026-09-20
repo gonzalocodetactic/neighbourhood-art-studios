@@ -1,9 +1,10 @@
 import configPromise from '@payload-config'
 import { RootLayout } from '@payloadcms/next/layouts'
+import '@payloadcms/next/css'
 import type React from 'react'
 import { importMap } from './admin/importMap.js'
 import { serverFunction } from './actions'
-import './custom.scss'
+import './custom.css'
 
 type Args = { children: React.ReactNode }
 

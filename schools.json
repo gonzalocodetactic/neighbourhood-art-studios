@@ -1,0 +1,130 @@
+{
+  "cities": [
+    {
+      "name": "Burnaby Schools",
+      "slug": "burnaby-schools",
+      "schools": [
+        "Armstrong", "Aubrey", "Brantford", "Brentwood Park", "Buckingham",
+        "Cameron", "Capitol Hill", "Cascade Heights", "Chaffey-Burke", "Clinton",
+        "Confederation Park", "Douglas Road", "Edmonds Community", "Forest Grove",
+        "Gilmore Community", "Gilpin", "Glenwood", "Inman", "Kitchener",
+        "Lakeview", "Lochdale Community", "Lyndhurst", "Marlborough",
+        "Maywood Community", "Montecito", "Morley", "Nelson", "Other / Private School",
+        "Parkcrest", "Rosser", "Seaforth", "Second Street Community",
+        "South Slope/BCSD", "Sperling", "Stoney Creek Community",
+        "Stride Avenue Community", "Suncrest", "Taylor Park", "Twelfth Avenue",
+        "University Highlands", "Westridge", "Windsor", "University Highlands (Wednesdays)"
+      ]
+    },
+    {
+      "name": "Delta Schools",
+      "slug": "delta-schools",
+      "schools": [
+        "Annieville", "Beach Grove", "Brooke", "Chalmers", "Cliff Drive",
+        "Cougar Canyon", "Devon Gardens", "English Bluff", "Gibson", "Gray",
+        "Hawthorne", "Health Traditional", "Hellings", "Holly", "Jarvis Traditional",
+        "Ladner", "McCloskey", "Neilson Grove", "Other / Private School",
+        "Pebble Hill Traditional", "Pinewood", "Port Guichon", "Richardson",
+        "South Park", "Sunshine Hills"
+      ]
+    },
+    {
+      "name": "Langley Schools",
+      "slug": "langley-schools",
+      "schools": [
+        "Alex Hope Elementary", "Alice Brown Elementary", "Belmont Elementary",
+        "Blacklock Elementary", "Brookswood Elementary", "Coghlan Fundamental Elementary",
+        "Donna Gabriel Robins Elementary", "Dorothy Peacock Elementary", "Douglas Park Community School",
+        "Fort Langley Elementary", "Glenwood Elementary", "Gordon Greenwood Elementary",
+        "James Hill Elementary", "James Kennedy Elementary", "Langley Fundamental Elementary",
+        "Langley Meadows Elementary", "Lynn Fripps Elementary", "Margaret D. Mitchell Elementary",
+        "Murrayville Elementary", "Nicomekl Elementary", "North Otter Elementary",
+        "Peterson Road Elementary", "R.C. Garnett Demonstration Elementary",
+        "Richard Bulpitt Elementary", "Shortreed Elementary", "Simonds Elementary",
+        "Topham Elementary", "Uplands Elementary", "West Langley Elementary",
+        "Willoughby Elementary", "Wix-Brown Elementary"
+      ]
+    },
+    {
+      "name": "Richmond Schools",
+      "slug": "richmond-schools",
+      "schools": [
+        "Anderson", "Blair", "Blundell", "Bridge", "Brighouse", "Byng", "Cook",
+        "DeBeck", "Diefenbaker", "Dixon", "Ferris", "Garden City", "General Currie",
+        "Gilmore", "Grauer", "Hamilton", "Homma", "John T. Errington", "Kidd",
+        "Kingswood", "Lee", "Maple Lane", "McKay", "McNeely", "Mitchell",
+        "Other / Private School", "Quilchena", "Sea Island Annex", "Spul'u'kwuks",
+        "Steves", "Tait", "Talmey", "Thompson", "Tomsett", "Westwind", "Whiteside",
+        "Woodward", "Wowk"
+      ]
+    },
+    {
+      "name": "Surrey Schools",
+      "slug": "surrey-schools",
+      "schools": [
+        "A. H. P. Matthew", "A.J. McLellan", "Adams Road", "Bayridge", "Bear Creek",
+        "Beaver Creek - Regular", "Berkshire Park - Regular", "Betty Huff", "Bonaccord - Regular",
+        "Bothwell", "Boundary Park - Regular", "Bridgeview", "Brookside - Regular", "Cambridge",
+        "Cedar Hills", "Chantrell Creek - Regular", "Chimney Hill - Regular", "Cindrich",
+        "Clayton", "Cloverdale - Regular", "Coast Meridian - Regular", "Colebrook", "Cougar Creek",
+        "Coyote Creek", "Creekside - Regular", "Crescent Park - Regular", "David Brankin - Regular",
+        "District s", "Dogwood", "Don Christian", "Douglas - Regular", "Dr. F. D. Sinclair",
+        "East Kensington", "Edgewood", "Ellendale", "Erma Stephenson - Regular", "Forsyth Road",
+        "Fraser Wood - Regular", "Frost Road - Regular", "George Greenaway", "Georges Vanier",
+        "Goldstone Park", "Green Timbers - Regular", "H. T. Thrift - Regular", "Harold Bishop",
+        "Hazelgrove", "Henry Bose - Regular", "Hillcrest", "Hjorth Road", "Holly", "Hyland - Regular",
+        "J. T. Brown", "James Ardiel", "Janice Churchill", "Jessie Lee - Regular",
+        "K. B. Woodward - Regular", "Katzie", "Kennedy Trail", "Kirkbride", "Kwantlen Park Secondary",
+        "Laronde", "Latimer Road - Regular", "Lena Shaw", "M. B. Sanford", "Maddaugh", "Maple Green",
+        "Martha Currie - Regular", "Martha Jane Norris", "Mary Jane Shannon", "McLeod Road", "Morgan",
+        "Mountain View Monte.", "Newton - Regular", "North Ridge", "Ocean Cliff - Regular", "Old Yale Road",
+        "Pacific Heights", "Panorama Park", "Peace Arch - Regular", "Port Kells", "Prince Charles",
+        "Private School", "Ray Shepherd", "Regent Road Elementary School", "Riverdale - Regular",
+        "Rosemary Heights", "Royal Heights", "Semiahmoo Trail", "Senator Reid", "Serpentine Heights",
+        "Simon Cunningham - Regular", "South Meridian", "Strawberry Hill - Regular", "Sullivan",
+        "Sunnyside", "Sunrise Ridge - Regular", "Surrey Centre", "Surrey Traditional School",
+        "T. E. Scott - Regular", "W. E. Kinvig", "Walnut Road", "Westerman", "White Rock - Fine Arts",
+        "White Rock - Regular", "William F. Davidson", "William Watson", "Woodland Park",
+        "Woodward Hill - Regular", "Private School: Crescent Heights Academy (Clayton Campus)",
+        "Private School: Crescent Heights Academy (Cloverdale Campus)", "Private School: Star Of The Sea"
+      ]
+    },
+    {
+      "name": "Vancouver Schools",
+      "slug": "vancouver-schools",
+      "schools": [
+        "Bayview Elementary", "Beaconsfield Elementary", "Britannia Elementary",
+        "Brock Elementary", "Bruce Elementary", "Carleton Elementary", "Carnarvon Elementary",
+        "Carr Elementary", "Cavell Elementary", "Champlain Heights Elementary",
+        "Collingwood Elementary", "Cook Elementary", "Cunningham Elementary", "Dickens Annex",
+        "Dickens Elementary", "Douglas Annex", "Douglas Elementary", "Elsie Roy Elementary",
+        "False Creek Elementary", "Fleming Elementary", "Franklin Elementary", "Fraser Elementary",
+        "Gordon Elementary", "Grandview ¿uuqinish'uuh Elementary", "Grenfell Elementary",
+        "Hastings Elementary", "Henderson Elementary", "Hudson Elementary", "Jamieson Elementary",
+        "John Norquay (Friday)", "John Norquay (Tuesday)", "Jules Quesnel Elementary",
+        "Kerrisdale Annex", "Kerrisdale Elementary", "Kingsford-Smith Elementary",
+        "Kitchener Elementary", "L'Ecole Bilingue Elementary", "Laurier Elementary",
+        "Livingstone Elementary", "Lloyd George Elementary", "Lord Elementary",
+        "MacCorkindale Elementary", "Mackenzie Elementary", "Magee Secondary",
+        "Maple Grove Elementary", "Maquinna Elementary", "McBride Annex", "McBride Elementary",
+        "McKechnie Elementary", "Moberly Elementary", "Mount Pleasant Elementary",
+        "Nelson Elementary", "Nightingale Elementary", "Nootka Elementary", "Norma Rose Point School",
+        "Norquay Elementary", "Oppenheimer Elementary", "Osler Elementary", "Queen Alexandra Elementary",
+        "Queen Elizabeth Elementary", "Queen Mary Elementary", "Queen Victoria Annex",
+        "Quilchena Elementary", "Renfrew Elementary", "Roberts Annex", "Roberts Elementary",
+        "Secord Elementary", "Selkirk Annex", "Selkirk Elementary", "Sexsmith Elementary",
+        "Seymour Elementary", "Shaughnessy Elementary", "Simon Fraser", "South Hill Education Centre",
+        "Southlands Elementary", "Strathcona Elementary", "šxʷwəq̓ʷəθət Crosstown Elementary",
+        "Tecumseh Annex", "Tecumseh Elementary", "Tennyson Elementary", "Thunderbird šxʷəxʷaʔəs Elementary",
+        "Tillicum Annex", "Trafalgar Elementary", "Trudeau Elementary", "Tyee Elementary",
+        "University Hill Elementary", "University Hill Secondary", "Van Horne Elementary",
+        "Vancouver Learn Network Elem", "Vancouver Technical Secondary", "Waverley Elementary",
+        "Weir Elementary", "wək̓ʷən̓əs tə syaqʷəm Elementary", "Wolfe Elementary", "xpeʔ Elementary"
+      ]
+    }
+  ],
+  "seasons": [
+    "Fall 2022", "Fall 2023", "Fall 2024", "Fall 2025", "Fall 2026",
+    "Winter 2025", "Winter 2026", "Spring 2025", "Spring 2026"
+  ]
+}
