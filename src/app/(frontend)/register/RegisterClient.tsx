@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { submitRegistration, submitWaitlist, type CheckoutAnswer, type RegistrationInput, type Student, type WaitlistInput } from './actions'
+import { initiateMonerisCheckout, submitRegistration, submitWaitlist, type CheckoutAnswer, type RegistrationInput, type Student, type WaitlistInput } from './actions'
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -265,9 +265,8 @@ function ProgramCard({
 const EMPTY_STUDENT: Student = {
   firstName: '',
   lastName: '',
-  dateOfBirth: '',
-  grade: '',
-  medicalNotes: '',
+  age: '',
+  gender: '',
 }
 
 function RegistrationModal({
@@ -283,9 +282,12 @@ function RegistrationModal({
   const [error, setError] = useState<string | null>(null)
 
   // Parent fields
-  const [parentName, setParentName] = useState('')
-  const [parentEmail, setParentEmail] = useState('')
-  const [parentPhone, setParentPhone] = useState('')
+  const [parentFirstName, setParentFirstName] = useState('')
+  const [parentLastName, setParentLastName]   = useState('')
+  const [parentEmail, setParentEmail]         = useState('')
+  const [parentPhone, setParentPhone]         = useState('')
+  const [ecName, setEcName]                   = useState('')
+  const [ecPhone, setEcPhone]                 = useState('')
 
   // Students
   const [students, setStudents] = useState<Student[]>([{ ...EMPTY_STUDENT }])
@@ -310,29 +312,40 @@ function RegistrationModal({
       value: answers[f.label] ?? '',
     }))
 
-    const payload: RegistrationInput = {
-      parentName,
+    const classDate = [variation.dayOfWeek, variation.timeSlot].filter(Boolean).join(' · ')
+
+    const input: RegistrationInput = {
+      parentFirstName,
+      parentLastName,
       parentEmail,
       parentPhone,
+      emergencyContactName:  ecName  || undefined,
+      emergencyContactPhone: ecPhone || undefined,
       students: students.map((s) => ({
         firstName: s.firstName,
-        lastName: s.lastName,
-        ...(s.dateOfBirth ? { dateOfBirth: s.dateOfBirth } : {}),
-        ...(s.grade ? { grade: s.grade } : {}),
-        ...(s.medicalNotes ? { medicalNotes: s.medicalNotes } : {}),
+        lastName:  s.lastName,
+        ...(s.age    ? { age: s.age }       : {}),
+        ...(s.gender ? { gender: s.gender } : {}),
       })),
-      schoolId: variation.schoolId,
-      seasonId: variation.seasonId,
+      schoolId:  variation.schoolId,
+      seasonId:  variation.seasonId,
       productId: variation.productId,
       checkoutAnswers,
+      classDate: classDate || undefined,
     }
 
     startTransition(async () => {
-      const result = await submitRegistration(payload)
-      if (result.success) {
-        onSuccess()
-      } else {
+      const result = await submitRegistration(input)
+      if (!result.success) {
         setError(result.error)
+        return
+      }
+      const checkoutResult = await initiateMonerisCheckout(result.id)
+      if ('checkoutUrl' in checkoutResult) {
+        window.location.href = checkoutResult.checkoutUrl
+      } else {
+        // Moneris not configured — fall back to success banner
+        onSuccess()
       }
     })
   }
@@ -373,14 +386,24 @@ function RegistrationModal({
               Parent / Guardian
             </h3>
             <div className="space-y-3">
-              <input
-                required
-                type="text"
-                placeholder="Full name *"
-                value={parentName}
-                onChange={(e) => setParentName(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  required
+                  type="text"
+                  placeholder="First name *"
+                  value={parentFirstName}
+                  onChange={(e) => setParentFirstName(e.target.value)}
+                  className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+                />
+                <input
+                  required
+                  type="text"
+                  placeholder="Last name *"
+                  value={parentLastName}
+                  onChange={(e) => setParentLastName(e.target.value)}
+                  className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+                />
+              </div>
               <input
                 required
                 type="email"
@@ -396,6 +419,29 @@ function RegistrationModal({
                 value={parentPhone}
                 onChange={(e) => setParentPhone(e.target.value)}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+              />
+            </div>
+          </section>
+
+          {/* Emergency Contact */}
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
+              Emergency Contact
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                placeholder="Contact name"
+                value={ecName}
+                onChange={(e) => setEcName(e.target.value)}
+                className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+              />
+              <input
+                type="tel"
+                placeholder="Contact phone"
+                value={ecPhone}
+                onChange={(e) => setEcPhone(e.target.value)}
+                className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
               />
             </div>
           </section>
@@ -439,30 +485,25 @@ function RegistrationModal({
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] text-gray-400 mb-1">Date of birth</label>
-                      <input
-                        type="date"
-                        value={student.dateOfBirth}
-                        onChange={(e) => updateStudent(idx, 'dateOfBirth', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
-                      />
-                    </div>
                     <input
                       type="text"
-                      placeholder="Grade (e.g. Grade 3)"
-                      value={student.grade}
-                      onChange={(e) => updateStudent(idx, 'grade', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8] self-end"
+                      placeholder="Age (e.g. 8)"
+                      value={student.age ?? ''}
+                      onChange={(e) => updateStudent(idx, 'age', e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
                     />
+                    <select
+                      value={student.gender ?? ''}
+                      onChange={(e) => updateStudent(idx, 'gender', e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8] bg-white"
+                    >
+                      <option value="">Gender (optional)</option>
+                      <option value="boy">Boy</option>
+                      <option value="girl">Girl</option>
+                      <option value="non-binary">Non-binary</option>
+                      <option value="prefer-not-to-say">Prefer not to say</option>
+                    </select>
                   </div>
-                  <textarea
-                    placeholder="Allergies, medications, or other notes…"
-                    value={student.medicalNotes}
-                    onChange={(e) => updateStudent(idx, 'medicalNotes', e.target.value)}
-                    rows={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8] resize-none"
-                  />
                 </div>
               ))}
             </div>
@@ -527,6 +568,18 @@ function RegistrationModal({
             </section>
           )}
 
+          {/* Class schedule */}
+          {(variation.dayOfWeek || variation.timeSlot) && (
+            <section className="bg-[#3B4BC8]/5 border border-[#3B4BC8]/20 rounded-xl px-4 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#3B4BC8] mb-1">
+                Class Schedule
+              </p>
+              <p className="text-sm font-medium text-gray-800">
+                {[variation.dayOfWeek, variation.timeSlot].filter(Boolean).join(' · ')}
+              </p>
+            </section>
+          )}
+
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
               {error}
@@ -538,11 +591,11 @@ function RegistrationModal({
             disabled={isPending}
             className="w-full py-3 text-sm font-bold text-white bg-[#3B4BC8] rounded-xl hover:bg-[#2D3AAA] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
           >
-            {isPending ? 'Submitting…' : `Confirm Registration · ${formatPrice(variation.price)}`}
+            {isPending ? 'Redirecting to payment…' : `Proceed to Payment · ${formatPrice(variation.price)}`}
           </button>
 
           <p className="text-[11px] text-center text-gray-400">
-            Payment will be collected separately. Spots are reserved upon form submission.
+            You'll be redirected to our secure Moneris payment page to complete checkout.
           </p>
         </form>
       </div>

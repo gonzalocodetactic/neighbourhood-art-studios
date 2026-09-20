@@ -4,14 +4,6 @@ import { getPayload } from 'payload'
 import PasswordGate from './PasswordGate'
 import RosterClient, { type RosterRow } from './RosterClient'
 
-// Split "Jane Smith" → ["Jane", "Smith"], handle single-word names gracefully
-function splitName(full: string): [string, string] {
-  const trimmed = (full ?? '').trim()
-  const i = trimmed.indexOf(' ')
-  if (i === -1) return [trimmed, '']
-  return [trimmed.slice(0, i), trimmed.slice(i + 1)]
-}
-
 // Safely extract `.id` from a populated relationship or return the raw value
 function getId(val: unknown): string {
   if (val && typeof val === 'object' && 'id' in val) return String((val as { id: unknown }).id)
@@ -67,7 +59,10 @@ export default async function StudentListsPage() {
   const rows: RosterRow[] = []
 
   for (const reg of regsRes.docs) {
-    const [parentFirst, parentLast] = splitName(reg.parentName ?? '')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r0 = reg as any
+    const parentFirst = r0.parentFirstName ?? ''
+    const parentLast  = r0.parentLastName  ?? ''
     const schoolTitle = getTitle(reg.school)
     const cityTitle   = reg.school && typeof reg.school === 'object'
       ? getTitle((reg.school as Record<string, unknown>).city)
@@ -80,9 +75,6 @@ export default async function StudentListsPage() {
     const scheduleDate =
       scheduleMap.get(productId)?.get(`${schoolId}-${seasonId}`) ?? ''
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const r = reg as any
-
     for (const student of (reg.students ?? []) as Record<string, unknown>[]) {
       rows.push({
         regId:           String(reg.id),
@@ -90,17 +82,17 @@ export default async function StudentListsPage() {
         parentLastName:  parentLast,
         phone:           reg.parentPhone ?? '',
         email:           reg.parentEmail ?? '',
-        ecName:          r.emergencyContactName  ?? '',
-        ecPhone:         r.emergencyContactPhone ?? '',
+        ecName:          r0.emergencyContactName  ?? '',
+        ecPhone:         r0.emergencyContactPhone ?? '',
         studentFirstName: String(student.firstName ?? ''),
         studentLastName:  String(student.lastName  ?? ''),
-        gradeAge:         String(student.grade      ?? ''),
+        gradeAge:         String((student as Record<string, unknown>).age ?? ''),
         gender:           String((student as Record<string, unknown>).gender ?? ''),
         school:           schoolTitle,
         schoolCity:       cityTitle,
         season:           seasonTitle,
-        divisionNumber:   r.divisionNumber ?? '',
-        teacherName:      r.teacherName    ?? '',
+        divisionNumber:   r0.divisionNumber ?? '',
+        teacherName:      r0.teacherName    ?? '',
         scheduleDate,
       })
     }

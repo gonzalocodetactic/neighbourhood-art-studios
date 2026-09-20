@@ -3,24 +3,31 @@ import type { CollectionConfig } from 'payload'
 export const Registrations: CollectionConfig = {
   slug: 'registrations',
   admin: {
-    useAsTitle: 'parentName',
-    defaultColumns: ['parentName', 'parentEmail', 'product', 'paymentStatus', 'attendanceStatus', 'createdAt'],
+    useAsTitle: 'parentFirstName',
+    defaultColumns: ['parentFirstName', 'parentLastName', 'parentEmail', 'product', 'paymentStatus', 'attendanceStatus', 'createdAt'],
   },
   fields: [
     {
       type: 'row',
       fields: [
         {
-          name: 'parentName',
+          name: 'parentFirstName',
           type: 'text',
+          label: 'Parent / Guardian First Name',
           required: true,
         },
         {
-          name: 'parentEmail',
-          type: 'email',
+          name: 'parentLastName',
+          type: 'text',
+          label: 'Parent / Guardian Last Name',
           required: true,
         },
       ],
+    },
+    {
+      name: 'parentEmail',
+      type: 'email',
+      required: true,
     },
     {
       name: 'parentPhone',
@@ -64,27 +71,10 @@ export const Registrations: CollectionConfig = {
           ],
         },
         {
-          type: 'row',
-          fields: [
-            {
-              name: 'dateOfBirth',
-              type: 'date',
-            },
-            {
-              name: 'grade',
-              type: 'text',
-              admin: {
-                placeholder: 'e.g. Grade 3, Kindergarten',
-              },
-            },
-          ],
-        },
-        {
-          name: 'medicalNotes',
-          type: 'textarea',
-          admin: {
-            placeholder: 'Allergies, medications, or other medical information',
-          },
+          name: 'age',
+          type: 'text',
+          label: 'Age',
+          admin: { placeholder: 'e.g. 8' },
         },
         {
           name: 'gender',
@@ -121,6 +111,23 @@ export const Registrations: CollectionConfig = {
           required: true,
         },
       ],
+    },
+    {
+      name: 'classDate',
+      type: 'text',
+      label: 'Class Date / Schedule',
+      admin: {
+        description: 'Pre-filled from the product variation schedule (e.g. Tuesday · 3:30 PM).',
+      },
+    },
+    {
+      name: 'monerisOrderId',
+      type: 'text',
+      label: 'Moneris Order ID',
+      admin: {
+        description: 'Set automatically when payment is initiated.',
+        readOnly: true,
+      },
     },
     {
       name: 'checkoutAnswers',
