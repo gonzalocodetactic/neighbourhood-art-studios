@@ -571,6 +571,7 @@ function WaitlistModal({
   const [studentLastName, setStudentLastName] = useState('')
   const [grade, setGrade] = useState('')
   const [notes, setNotes] = useState('')
+  const [submitted, setSubmitted] = useState(false)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -592,11 +593,52 @@ function WaitlistModal({
     startTransition(async () => {
       const result = await submitWaitlist(input)
       if (result.success) {
-        onSuccess()
+        setSubmitted(true)
       } else {
         setError(result.error)
       }
     })
+  }
+
+  if (submitted) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onSuccess} />
+        <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl mx-4 p-8 text-center">
+          <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
+            <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2
+            className="text-xl font-bold text-gray-900 mb-2"
+            style={{ fontFamily: 'Georgia, serif' }}
+          >
+            You&apos;re on the list!
+          </h2>
+          <p className="text-sm text-gray-600 mb-1">
+            <span className="font-semibold text-gray-900">
+              {studentFirstName} {studentLastName}
+            </span>{' '}
+            has been added to the waitlist for
+          </p>
+          <p className="text-sm font-semibold text-[#3B4BC8] mb-4">
+            {variation.productTitle}
+          </p>
+          <p className="text-xs text-gray-400 mb-7">
+            We&apos;ll reach out to{' '}
+            <span className="font-medium text-gray-600">{parentEmail}</span> as
+            soon as a spot opens up.
+          </p>
+          <button
+            onClick={onSuccess}
+            className="w-full py-2.5 text-sm font-bold text-white bg-[#3B4BC8] rounded-xl hover:bg-[#2D3AAA] active:scale-[0.98] transition-all"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
