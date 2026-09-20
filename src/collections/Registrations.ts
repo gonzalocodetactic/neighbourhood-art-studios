@@ -28,6 +28,21 @@ export const Registrations: CollectionConfig = {
       required: true,
     },
     {
+      type: 'row',
+      fields: [
+        {
+          name: 'emergencyContactName',
+          type: 'text',
+          label: 'Emergency Contact Name',
+        },
+        {
+          name: 'emergencyContactPhone',
+          type: 'text',
+          label: 'Emergency Contact Phone',
+        },
+      ],
+    },
+    {
       name: 'students',
       type: 'array',
       label: 'Student(s)',
@@ -71,6 +86,17 @@ export const Registrations: CollectionConfig = {
             placeholder: 'Allergies, medications, or other medical information',
           },
         },
+        {
+          name: 'gender',
+          type: 'select',
+          label: 'Gender',
+          options: [
+            { label: 'Boy', value: 'boy' },
+            { label: 'Girl', value: 'girl' },
+            { label: 'Non-binary', value: 'non-binary' },
+            { label: 'Prefer not to say', value: 'prefer-not-to-say' },
+          ],
+        },
       ],
     },
     {
@@ -111,6 +137,27 @@ export const Registrations: CollectionConfig = {
         {
           name: 'value',
           type: 'text',
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'divisionNumber',
+          type: 'text',
+          label: 'Division Number',
+          admin: {
+            description: 'Set by the school after scheduling (e.g. Div. 4).',
+          },
+        },
+        {
+          name: 'teacherName',
+          type: 'text',
+          label: 'Teacher Name',
+          admin: {
+            description: 'Classroom teacher assigned to this registration.',
+          },
         },
       ],
     },
