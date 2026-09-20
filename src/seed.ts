@@ -19,14 +19,85 @@ interface SeedData {
   seasons: string[]
 }
 
+// ── Product definitions ───────────────────────────────────────────────────────
+
+// Schools that anchor product variations.  One representative per city so the
+// /register selector shows real results across all 6 city groups.
+const PRODUCT_SCHOOLS = [
+  // Burnaby
+  'Cameron',
+  'Armstrong',
+  'Aubrey',
+  // Delta
+  'Annieville',
+  // Langley
+  'Alex Hope Elementary',
+  // Richmond
+  'Anderson',
+  // Surrey
+  'Bear Creek',
+  // Vancouver
+  'Bayview Elementary',
+]
+
+// Seasons that will receive variations
+const PRODUCT_SEASONS = ['Fall 2022', 'Fall 2024', 'Fall 2025', 'Fall 2026']
+
+// [schoolTitle, seasonTitle] pairs per product
+const DRAWING_PAIRS: [string, string][] = [
+  // Cameron (Burnaby) — span all four target seasons
+  ['Cameron', 'Fall 2022'],
+  ['Cameron', 'Fall 2024'],
+  ['Cameron', 'Fall 2025'],
+  ['Cameron', 'Fall 2026'],
+  // Additional Burnaby schools
+  ['Armstrong', 'Fall 2025'],
+  ['Armstrong', 'Fall 2026'],
+  // One other city per remaining group
+  ['Annieville', 'Fall 2025'],
+  ['Annieville', 'Fall 2026'],
+  ['Alex Hope Elementary', 'Fall 2025'],
+  ['Alex Hope Elementary', 'Fall 2026'],
+  ['Anderson', 'Fall 2025'],
+  ['Anderson', 'Fall 2026'],
+  ['Bear Creek', 'Fall 2025'],
+  ['Bear Creek', 'Fall 2026'],
+  ['Bayview Elementary', 'Fall 2025'],
+  ['Bayview Elementary', 'Fall 2026'],
+]
+
+const CLAY_PAIRS: [string, string][] = [
+  ['Cameron', 'Fall 2025'],
+  ['Cameron', 'Fall 2026'],
+  ['Aubrey', 'Fall 2025'],
+  ['Aubrey', 'Fall 2026'],
+  ['Annieville', 'Fall 2025'],
+  ['Annieville', 'Fall 2026'],
+  ['Alex Hope Elementary', 'Fall 2026'],
+  ['Anderson', 'Fall 2025'],
+  ['Anderson', 'Fall 2026'],
+  ['Bear Creek', 'Fall 2026'],
+  ['Bayview Elementary', 'Fall 2025'],
+  ['Bayview Elementary', 'Fall 2026'],
+]
+
+const CHECKOUT_FIELDS = [
+  { label: 'Student Full Name', fieldType: 'text',     required: true  },
+  { label: 'Grade',             fieldType: 'text',     required: true  },
+  { label: 'Medical Notes',     fieldType: 'textarea', required: false },
+] as const
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+
 async function main() {
   const payload = await getPayload({ config })
   const data: SeedData = JSON.parse(
     readFileSync(resolve(process.cwd(), 'schools.json'), 'utf-8'),
   )
 
-  // ── Cities & Schools ────────────────────────────────────────────────────
+  // ── Cities & Schools ────────────────────────────────────────────────────────
 
+  console.log('\n── Cities & Schools ──')
   for (const cityEntry of data.cities) {
     const existing = await payload.find({
       collection: 'cities',
@@ -69,8 +140,9 @@ async function main() {
     }
   }
 
-  // ── Seasons ──────────────────────────────────────────────────────────────
+  // ── Seasons ─────────────────────────────────────────────────────────────────
 
+  console.log('\n── Seasons ──')
   for (const title of data.seasons) {
     const existing = await payload.find({
       collection: 'seasons',
@@ -88,6 +160,101 @@ async function main() {
       data: { title, active: true },
     })
     console.log(`  season [+]    ${title}`)
+  }
+
+  // ── Products ─────────────────────────────────────────────────────────────────
+
+  console.log('\n── Products ──')
+
+  // Resolve school records (with city populated so we can pass the city ID to
+  // each variation — the Products collection requires it).
+  const [schoolRes, seasonRes] = await Promise.all([
+    payload.find({
+      collection: 'schools',
+      limit: 200,
+      depth: 1,
+      where: { title: { in: PRODUCT_SCHOOLS } },
+    }),
+    payload.find({
+      collection: 'seasons',
+      limit: 50,
+      where: { title: { in: PRODUCT_SEASONS } },
+    }),
+  ])
+
+  type SchoolRef = { id: number | string; cityId: number | string }
+  const schoolMap = new Map<string, SchoolRef>()
+  for (const s of schoolRes.docs) {
+    const cityId =
+      s.city && typeof s.city === 'object' && 'id' in s.city
+        ? (s.city as { id: number | string }).id
+        : (s.city as number | string)
+    schoolMap.set(s.title, { id: s.id, cityId })
+  }
+
+  const seasonMap = new Map<string, number | string>()
+  for (const s of seasonRes.docs) {
+    seasonMap.set(s.title, s.id)
+  }
+
+  // Build a typed variation array from school+season title pairs
+  function buildVariations(
+    pairs: [string, string][],
+    price: number,
+    capacity: number,
+  ) {
+    return pairs.flatMap(([schoolTitle, seasonTitle]) => {
+      const school = schoolMap.get(schoolTitle)
+      const seasonId = seasonMap.get(seasonTitle)
+      if (!school || !seasonId) {
+        console.log(`    [warn] skipping ${schoolTitle} / ${seasonTitle} — not found in DB`)
+        return []
+      }
+      return [{ city: school.cityId, school: school.id, season: seasonId, price, capacity }]
+    })
+  }
+
+  const productDefs = [
+    {
+      title: 'After-School Drawing & Painting',
+      price: 18000, // $180.00 CAD (stored as cents)
+      capacity: 20,
+      pairs: DRAWING_PAIRS,
+    },
+    {
+      title: 'Clay & Sculpting Workshop',
+      price: 21000, // $210.00 CAD
+      capacity: 15,
+      pairs: CLAY_PAIRS,
+    },
+  ]
+
+  for (const def of productDefs) {
+    const existing = await payload.find({
+      collection: 'products',
+      where: { title: { equals: def.title } },
+      limit: 1,
+    })
+
+    if (existing.docs.length > 0) {
+      console.log(`  product [skip] ${def.title}`)
+      continue
+    }
+
+    const variations = buildVariations(def.pairs, def.price, def.capacity)
+
+    await payload.create({
+      collection: 'products',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: {
+        title: def.title,
+        variations,
+        checkoutFields: [...CHECKOUT_FIELDS],
+      } as any,
+    })
+
+    console.log(`  product [+]    ${def.title}`)
+    console.log(`    ${variations.length} variations · $${(def.price / 100).toFixed(2)} CAD · capacity ${def.capacity}`)
   }
 
   console.log('\nSeed complete.')
