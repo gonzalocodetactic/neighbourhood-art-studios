@@ -104,6 +104,7 @@ export default function Sidebar({ sidebarItems, logo }: { sidebarItems?: NavItem
               width={84}
               height={84}
               className="object-contain"
+              unoptimized
             />
           ) : (
             <NasLogo size={84} />
