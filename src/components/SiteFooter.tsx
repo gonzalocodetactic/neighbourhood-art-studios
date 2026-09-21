@@ -8,7 +8,6 @@ const footerNav = [
   { label: 'Art Parties', href: '/art-parties' },
   { label: 'Become a Teacher', href: '/become-a-teacher' },
   { label: 'In class Workshops', href: '/workshops' },
-  { label: 'Gallery', href: '/gallery' },
   { label: 'Contact', href: '/contact' },
   { label: 'Register', href: '/register' },
 ]
@@ -30,8 +29,8 @@ export default function SiteFooter() {
             Navigator
           </h4>
           <ul className="space-y-2">
-            {footerNav.map((item) => (
-              <li key={item.href + item.label}>
+            {footerNav.map((item, idx) => (
+              <li key={`${item.href}-${item.label}-${idx}`}>
                 <a
                   href={item.href}
                   className="text-xs text-gray-300 hover:text-white transition-colors"
