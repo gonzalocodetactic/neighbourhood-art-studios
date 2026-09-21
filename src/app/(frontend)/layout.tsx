@@ -16,7 +16,7 @@ export default async function FrontendLayout({ children }: { children: React.Rea
   return (
     <html lang="en">
       <body>
-        <Sidebar sidebarItems={headerNav?.sidebarMenuItems} />
+        <Sidebar sidebarItems={headerNav?.sidebarMenuItems} logo={headerNav?.logo} />
         <div
           style={{ marginLeft: 'var(--sidebar-width)' }}
           className="flex min-h-screen flex-col"

@@ -4,8 +4,10 @@ import { getPayload } from 'payload'
 
 export type ChildNavItem = { label: string; url: string }
 export type NavItem = { label: string; url: string; icon?: string; children?: ChildNavItem[] }
+export type LogoMedia = { url: string; alt: string }
 
 export type HeaderNav = {
+  logo: LogoMedia | null
   mainMenuItems: NavItem[]
   sidebarMenuItems: NavItem[]
 }
@@ -39,7 +41,13 @@ export const getHeaderSettings = cache(async (): Promise<HeaderNav | null> => {
         : undefined,
     }))
 
-    return { mainMenuItems, sidebarMenuItems }
+    const rawLogo = settings?.logo
+    const logo: LogoMedia | null =
+      rawLogo && typeof rawLogo === 'object' && rawLogo.url
+        ? { url: String(rawLogo.url), alt: String(rawLogo.alt ?? '') }
+        : null
+
+    return { logo, mainMenuItems, sidebarMenuItems }
   } catch {
     return null
   }

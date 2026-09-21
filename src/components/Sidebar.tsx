@@ -1,10 +1,11 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { NasLogo } from './NasLogo'
-import type { NavItem } from '@/lib/getHeaderSettings'
+import type { LogoMedia, NavItem } from '@/lib/getHeaderSettings'
 
 const FALLBACK_NAV: NavItem[] = [
   { label: 'Home', url: '/' },
@@ -65,7 +66,7 @@ function InstagramIcon() {
   )
 }
 
-export default function Sidebar({ sidebarItems }: { sidebarItems?: NavItem[] }) {
+export default function Sidebar({ sidebarItems, logo }: { sidebarItems?: NavItem[]; logo?: LogoMedia | null }) {
   const pathname = usePathname()
   const items = sidebarItems && sidebarItems.length > 0 ? sidebarItems : FALLBACK_NAV
 
@@ -96,7 +97,17 @@ export default function Sidebar({ sidebarItems }: { sidebarItems?: NavItem[] }) 
       {/* Logo */}
       <div className="flex justify-center pt-5 pb-3 px-4 border-b border-gray-100">
         <Link href="/" aria-label="Neighbourhood Art Studios Home">
-          <NasLogo size={84} />
+          {logo?.url ? (
+            <Image
+              src={logo.url}
+              alt={logo.alt || 'Neighbourhood Art Studios'}
+              width={84}
+              height={84}
+              className="object-contain"
+            />
+          ) : (
+            <NasLogo size={84} />
+          )}
         </Link>
       </div>
 
