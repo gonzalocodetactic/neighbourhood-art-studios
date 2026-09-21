@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { NasLogo } from './NasLogo'
+import type { NavItem } from '@/lib/getHeaderSettings'
 
 const navItems = [
   { label: 'Home', href: '/' },
@@ -45,7 +46,7 @@ function InstagramIcon() {
   )
 }
 
-export default function Sidebar() {
+export default function Sidebar({ sidebarItems }: { sidebarItems?: NavItem[] }) {
   const pathname = usePathname()
 
   const isActive = (href: string) =>
@@ -66,40 +67,56 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 py-3 px-3">
         <ul className="space-y-0.5">
-          {navItems.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={`block px-3 py-1.5 text-[11.5px] font-medium tracking-wide rounded transition-colors ${
-                  isActive(item.href)
-                    ? 'text-[#3B4BC8] font-semibold'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {item.label}
-              </Link>
+          {sidebarItems && sidebarItems.length > 0
+            ? sidebarItems.map((item) => (
+                <li key={item.url}>
+                  <Link
+                    href={item.url}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium tracking-wide rounded transition-colors ${
+                      isActive(item.url)
+                        ? 'text-[#3B4BC8] font-semibold'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {item.icon && <span>{item.icon}</span>}
+                    {item.label}
+                  </Link>
+                </li>
+              ))
+            : navItems.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`block px-3 py-1.5 text-[11.5px] font-medium tracking-wide rounded transition-colors ${
+                      isActive(item.href)
+                        ? 'text-[#3B4BC8] font-semibold'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
 
-              {/* Sub-items */}
-              {item.children && (
-                <ul className="ml-3 mt-0.5 space-y-0.5">
-                  {item.children.map((child) => (
-                    <li key={child.href}>
-                      <Link
-                        href={child.href}
-                        className={`block px-3 py-1 text-[11px] tracking-wide rounded transition-colors ${
-                          isActive(child.href)
-                            ? 'text-[#3B4BC8] font-semibold'
-                            : 'text-gray-500 hover:text-gray-800'
-                        }`}
-                      >
-                        {child.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
+                  {/* Sub-items */}
+                  {item.children && (
+                    <ul className="ml-3 mt-0.5 space-y-0.5">
+                      {item.children.map((child) => (
+                        <li key={child.href}>
+                          <Link
+                            href={child.href}
+                            className={`block px-3 py-1 text-[11px] tracking-wide rounded transition-colors ${
+                              isActive(child.href)
+                                ? 'text-[#3B4BC8] font-semibold'
+                                : 'text-gray-500 hover:text-gray-800'
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
 
           {/* Register — highlighted */}
           <li className="pt-2">

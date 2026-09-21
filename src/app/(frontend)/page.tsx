@@ -1,6 +1,7 @@
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { BlockRenderer } from '@/components/BlockRenderer'
+import { getHeaderSettings } from '@/lib/getHeaderSettings'
 
 // ── Demo blocks — rendered when no "home" page exists in Payload yet ─────────
 const DEMO_LAYOUT = [
@@ -110,6 +111,7 @@ export default async function HomePage() {
   let layout = DEMO_LAYOUT
 
   try {
+    await getHeaderSettings() // warms the request cache for layout deduplication
     const payload = await getPayload({ config: configPromise })
     const result = await payload.find({
       collection: 'pages',

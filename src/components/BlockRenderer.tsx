@@ -1,4 +1,6 @@
 import { CascadingMediaContent } from './blocks/CascadingMediaContent'
+import { CallToAction } from './blocks/CallToAction'
+import { FeatureGrid } from './blocks/FeatureGrid'
 import { FooterCta } from './blocks/FooterCta'
 import { Hero } from './blocks/Hero'
 import { HighlightCallout } from './blocks/HighlightCallout'
@@ -28,6 +30,10 @@ export function BlockRenderer({ block }: { block: AnyBlock }) {
       return <ProgramFlipCards {...b} />
     case 'footerCta':
       return <FooterCta {...b} />
+    case 'featureGrid':
+      return <FeatureGrid {...b} />
+    case 'callToAction':
+      return <CallToAction {...b} />
     default:
       return null
   }

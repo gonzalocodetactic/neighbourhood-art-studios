@@ -1,19 +1,9 @@
 import type { Block, CollectionConfig } from 'payload'
+import { HeroBlock } from '../blocks/HeroBlock'
+import { FeatureGridBlock } from '../blocks/FeatureGridBlock'
+import { CallToActionBlock } from '../blocks/CallToActionBlock'
 
 // ── Blocks ────────────────────────────────────────────────────────────────────
-
-const HeroBlock: Block = {
-  slug: 'hero',
-  interfaceName: 'HeroBlock',
-  labels: { singular: 'Hero', plural: 'Heroes' },
-  fields: [
-    { name: 'title', type: 'text', required: true },
-    { name: 'subtitle', type: 'text' },
-    { name: 'ctaLabel', type: 'text', label: 'CTA Button Label' },
-    { name: 'ctaLink', type: 'text', label: 'CTA Link' },
-    { name: 'backgroundImage', type: 'upload', relationTo: 'media' },
-  ],
-}
 
 const HighlightCalloutBlock: Block = {
   slug: 'highlightCallout',
@@ -167,6 +157,8 @@ export const Pages: CollectionConfig = {
         TestimonialsSliderBlock,
         ProgramFlipCardsBlock,
         FooterCtaBlock,
+        FeatureGridBlock,
+        CallToActionBlock,
       ],
     },
   ],

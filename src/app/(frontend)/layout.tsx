@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import '../globals.css'
 import Sidebar from '@/components/Sidebar'
 import SiteFooter from '@/components/SiteFooter'
+import { getHeaderSettings } from '@/lib/getHeaderSettings'
 import type React from 'react'
 
 export const metadata: Metadata = {
@@ -9,14 +10,13 @@ export const metadata: Metadata = {
   description: 'After-school art programs for kids across Metro Vancouver.',
 }
 
-export default function FrontendLayout({ children }: { children: React.ReactNode }) {
+export default async function FrontendLayout({ children }: { children: React.ReactNode }) {
+  const headerNav = await getHeaderSettings()
+
   return (
     <html lang="en">
       <body>
-        {/* Fixed left sidebar */}
-        <Sidebar />
-
-        {/* Scrollable content area — offset by sidebar width */}
+        <Sidebar sidebarItems={headerNav?.sidebarMenuItems} />
         <div
           style={{ marginLeft: 'var(--sidebar-width)' }}
           className="flex min-h-screen flex-col"

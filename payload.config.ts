@@ -14,6 +14,7 @@ import { Schools } from './src/collections/Schools'
 import { Seasons } from './src/collections/Seasons'
 import { Waitlist } from './src/collections/Waitlist'
 import { PaymentSettings } from './src/globals/PaymentSettings'
+import { HeaderSettings } from './src/globals/HeaderSettings'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -38,7 +39,7 @@ export default buildConfig({
     Registrations,
     Waitlist,
   ],
-  globals: [PaymentSettings],
+  globals: [PaymentSettings, HeaderSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
