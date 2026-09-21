@@ -91,6 +91,7 @@ export default async function RegisterPage() {
               fieldType: (f.fieldType ?? 'text') as 'text' | 'number' | 'select' | 'checkbox',
               required: f.required ?? false,
               placeholder: f.placeholder || undefined,
+              width: f.width || undefined,
               selectOptions: Array.isArray(f.selectOptions)
                 ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   f.selectOptions.map((o: any) => ({ label: o.label ?? '', value: o.value ?? '' }))

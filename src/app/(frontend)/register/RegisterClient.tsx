@@ -27,6 +27,7 @@ export type RegisterPageData = {
       fieldType: 'text' | 'number' | 'select' | 'checkbox'
       required: boolean
       placeholder?: string
+      width?: string
       selectOptions?: Array<{ label: string; value: string }>
     }> | null
     checkoutFields: Array<{ label: string; fieldType: string; required: boolean }>
@@ -271,12 +272,13 @@ function ProgramCard({
 // ── Registration modal ─────────────────────────────────────────────────────────
 
 const DEFAULT_STUDENT_FIELDS: NonNullable<RegisterPageData['variations'][number]['perStudentFields']> = [
-  { label: 'Age', fieldName: 'age', fieldType: 'text', required: false, placeholder: 'e.g. 8' },
+  { label: 'Age', fieldName: 'age', fieldType: 'text', required: false, placeholder: 'e.g. 8', width: '50%' },
   {
     label: 'Gender',
     fieldName: 'gender',
     fieldType: 'select',
     required: false,
+    width: '50%',
     selectOptions: [
       { label: 'Boy', value: 'boy' },
       { label: 'Girl', value: 'girl' },
@@ -284,9 +286,15 @@ const DEFAULT_STUDENT_FIELDS: NonNullable<RegisterPageData['variations'][number]
       { label: 'Prefer not to say', value: 'prefer-not-to-say' },
     ],
   },
-  { label: 'Teacher Name', fieldName: 'teacherName', fieldType: 'text', required: false, placeholder: 'e.g. Ms. Johnson' },
-  { label: 'Division', fieldName: 'divisionNumber', fieldType: 'text', required: false, placeholder: 'e.g. Div. 4' },
+  { label: 'Teacher Name', fieldName: 'teacherName', fieldType: 'text', required: false, placeholder: 'e.g. Ms. Johnson', width: '50%' },
+  { label: 'Division', fieldName: 'divisionNumber', fieldType: 'text', required: false, placeholder: 'e.g. Div. 4', width: '50%' },
 ]
+
+function colSpanClass(width?: string) {
+  if (width === '50%') return 'col-span-12 sm:col-span-6'
+  if (width === '33%') return 'col-span-12 sm:col-span-4'
+  return 'col-span-12'
+}
 
 const EMPTY_STUDENT: Record<string, string> = { firstName: '' }
 
@@ -516,47 +524,49 @@ function RegistrationModal({
                     onChange={(e) => updateStudent(idx, 'firstName', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
                   />
-                  {studentFields.map((field) => (
-                    <div key={field.fieldName}>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        {field.label}
-                        {field.required && <span className="text-red-500 ml-0.5">*</span>}
-                      </label>
-                      {field.fieldType === 'select' ? (
-                        <select
-                          required={field.required}
-                          value={student[field.fieldName] ?? ''}
-                          onChange={(e) => updateStudent(idx, field.fieldName, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8] bg-white"
-                        >
-                          <option value="">{field.label} (optional)</option>
-                          {field.selectOptions?.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-                      ) : field.fieldType === 'checkbox' ? (
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            required={field.required}
-                            checked={student[field.fieldName] === 'true'}
-                            onChange={(e) => updateStudent(idx, field.fieldName, e.target.checked ? 'true' : 'false')}
-                            className="w-4 h-4 text-[#3B4BC8] rounded border-gray-300 focus:ring-[#3B4BC8]"
-                          />
-                          <span className="text-sm text-gray-600">Yes</span>
+                  <div className="grid grid-cols-12 gap-3">
+                    {studentFields.map((field) => (
+                      <div key={field.fieldName} className={colSpanClass(field.width)}>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          {field.label}
+                          {field.required && <span className="text-red-500 ml-0.5">*</span>}
                         </label>
-                      ) : (
-                        <input
-                          type={field.fieldType === 'number' ? 'number' : 'text'}
-                          required={field.required}
-                          placeholder={field.placeholder ?? ''}
-                          value={student[field.fieldName] ?? ''}
-                          onChange={(e) => updateStudent(idx, field.fieldName, e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
-                        />
-                      )}
-                    </div>
-                  ))}
+                        {field.fieldType === 'select' ? (
+                          <select
+                            required={field.required}
+                            value={student[field.fieldName] ?? ''}
+                            onChange={(e) => updateStudent(idx, field.fieldName, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8] bg-white"
+                          >
+                            <option value="">{field.label} (optional)</option>
+                            {field.selectOptions?.map((opt) => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        ) : field.fieldType === 'checkbox' ? (
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              required={field.required}
+                              checked={student[field.fieldName] === 'true'}
+                              onChange={(e) => updateStudent(idx, field.fieldName, e.target.checked ? 'true' : 'false')}
+                              className="w-4 h-4 text-[#3B4BC8] rounded border-gray-300 focus:ring-[#3B4BC8]"
+                            />
+                            <span className="text-sm text-gray-600">Yes</span>
+                          </label>
+                        ) : (
+                          <input
+                            type={field.fieldType === 'number' ? 'number' : 'text'}
+                            required={field.required}
+                            placeholder={field.placeholder ?? ''}
+                            value={student[field.fieldName] ?? ''}
+                            onChange={(e) => updateStudent(idx, field.fieldName, e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

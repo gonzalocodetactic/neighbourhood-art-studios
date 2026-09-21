@@ -36,6 +36,16 @@ export const Forms: CollectionConfig = {
             { name: 'required', type: 'checkbox', defaultValue: false },
           ],
         },
+        {
+          name: 'width',
+          type: 'select',
+          defaultValue: '100%',
+          options: [
+            { label: 'Full Width', value: '100%' },
+            { label: 'Half Width', value: '50%' },
+            { label: 'One-Third Width', value: '33%' },
+          ],
+        },
         { name: 'placeholder', type: 'text' },
         {
           name: 'selectOptions',
