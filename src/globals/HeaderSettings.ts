@@ -35,6 +35,22 @@ export const HeaderSettings: GlobalConfig = {
             { name: 'page', type: 'relationship', relationTo: 'pages', label: 'Page (optional)' },
           ],
         },
+        {
+          name: 'children',
+          type: 'array',
+          label: 'Child Items',
+          admin: { description: 'Optional nested links shown in an expandable dropdown.' },
+          fields: [
+            { name: 'label', type: 'text', required: true },
+            {
+              type: 'row',
+              fields: [
+                { name: 'url', type: 'text', label: 'URL', admin: { placeholder: '/instructors' } },
+                { name: 'page', type: 'relationship', relationTo: 'pages', label: 'Page (optional)' },
+              ],
+            },
+          ],
+        },
       ],
     },
   ],

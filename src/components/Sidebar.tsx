@@ -1,26 +1,45 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { NasLogo } from './NasLogo'
 import type { NavItem } from '@/lib/getHeaderSettings'
 
-const navItems = [
-  { label: 'Home', href: '/' },
+const FALLBACK_NAV: NavItem[] = [
+  { label: 'Home', url: '/' },
   {
     label: 'Programs',
-    href: '/programs',
+    url: '/programs',
     children: [
-      { label: 'Instructors', href: '/instructors' },
-      { label: 'Camps', href: '/camps' },
-      { label: 'Art Parties', href: '/art-parties' },
+      { label: 'Instructors', url: '/instructors' },
+      { label: 'Camps', url: '/camps' },
+      { label: 'Art Parties', url: '/art-parties' },
     ],
   },
-  { label: 'Become a Teacher', href: '/become-a-teacher' },
-  { label: 'In class Workshops', href: '/workshops' },
-  { label: 'Gallery', href: '/gallery' },
-  { label: 'Contact', href: '/contact' },
+  { label: 'Become a Teacher', url: '/become-a-teacher' },
+  { label: 'In Class Workshops', url: '/in-class-workshops' },
+  { label: 'Gallery', url: '/gallery' },
+  { label: 'Contact', url: '/contact' },
+  { label: 'Register', url: '/register' },
 ]
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+      aria-hidden
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
+}
 
 function TwitterIcon() {
   return (
@@ -48,9 +67,26 @@ function InstagramIcon() {
 
 export default function Sidebar({ sidebarItems }: { sidebarItems?: NavItem[] }) {
   const pathname = usePathname()
+  const items = sidebarItems && sidebarItems.length > 0 ? sidebarItems : FALLBACK_NAV
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
+
+  const hasActiveChild = (item: NavItem) =>
+    item.children?.some((c) => isActive(c.url)) ?? false
+
+  // Pre-open any parent whose child is active
+  const [openItems, setOpenItems] = useState<Set<string>>(
+    () => new Set(items.filter(hasActiveChild).map((i) => i.url)),
+  )
+
+  function toggleItem(url: string) {
+    setOpenItems((prev) => {
+      const next = new Set(prev)
+      next.has(url) ? next.delete(url) : next.add(url)
+      return next
+    })
+  }
 
   return (
     <aside
@@ -67,9 +103,61 @@ export default function Sidebar({ sidebarItems }: { sidebarItems?: NavItem[] }) 
       {/* Navigation */}
       <nav className="flex-1 py-3 px-3">
         <ul className="space-y-0.5">
-          {sidebarItems && sidebarItems.length > 0
-            ? sidebarItems.map((item) => (
-                <li key={item.url}>
+          {items.map((item) => {
+            const hasChildren = item.children && item.children.length > 0
+            const open = openItems.has(item.url)
+            const parentActive = isActive(item.url) || hasActiveChild(item)
+
+            return (
+              <li key={item.url}>
+                {hasChildren ? (
+                  <>
+                    {/* Row: link + chevron toggle */}
+                    <div className="flex items-center">
+                      <Link
+                        href={item.url}
+                        className={`flex-1 flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium tracking-wide rounded-l transition-colors ${
+                          parentActive
+                            ? 'text-[#3B4BC8] font-semibold'
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        {item.icon && <span>{item.icon}</span>}
+                        {item.label}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => toggleItem(item.url)}
+                        aria-label={open ? `Collapse ${item.label}` : `Expand ${item.label}`}
+                        className={`px-1.5 py-1.5 rounded-r transition-colors ${
+                          parentActive ? 'text-[#3B4BC8]' : 'text-gray-400 hover:text-gray-700'
+                        }`}
+                      >
+                        <ChevronIcon open={open} />
+                      </button>
+                    </div>
+
+                    {/* Children */}
+                    {open && (
+                      <ul className="ml-3 mt-0.5 space-y-0.5">
+                        {item.children!.map((child) => (
+                          <li key={child.url}>
+                            <Link
+                              href={child.url}
+                              className={`block px-3 py-1 text-[11px] tracking-wide rounded transition-colors ${
+                                isActive(child.url)
+                                  ? 'text-[#3B4BC8] font-semibold'
+                                  : 'text-gray-500 hover:text-gray-800'
+                              }`}
+                            >
+                              {child.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                ) : (
                   <Link
                     href={item.url}
                     className={`flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium tracking-wide rounded transition-colors ${
@@ -81,88 +169,23 @@ export default function Sidebar({ sidebarItems }: { sidebarItems?: NavItem[] }) 
                     {item.icon && <span>{item.icon}</span>}
                     {item.label}
                   </Link>
-                </li>
-              ))
-            : navItems.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`block px-3 py-1.5 text-[11.5px] font-medium tracking-wide rounded transition-colors ${
-                      isActive(item.href)
-                        ? 'text-[#3B4BC8] font-semibold'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-
-                  {/* Sub-items */}
-                  {item.children && (
-                    <ul className="ml-3 mt-0.5 space-y-0.5">
-                      {item.children.map((child) => (
-                        <li key={child.href}>
-                          <Link
-                            href={child.href}
-                            className={`block px-3 py-1 text-[11px] tracking-wide rounded transition-colors ${
-                              isActive(child.href)
-                                ? 'text-[#3B4BC8] font-semibold'
-                                : 'text-gray-500 hover:text-gray-800'
-                            }`}
-                          >
-                            {child.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-
-          {/* Register — highlighted */}
-          <li className="pt-2">
-            <Link
-              href="/register"
-              className={`flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-semibold tracking-wide rounded transition-colors ${
-                isActive('/register')
-                  ? 'text-[#3B4BC8]'
-                  : 'text-[#3B4BC8] hover:text-[#2D3AAA]'
-              }`}
-            >
-              <span>➔</span>
-              <span>Register</span>
-            </Link>
-          </li>
+                )}
+              </li>
+            )
+          })}
         </ul>
       </nav>
 
       {/* Social icons */}
       <div className="px-4 py-4 border-t border-gray-100">
         <div className="flex items-center gap-3 text-gray-500">
-          <a
-            href="https://twitter.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Twitter"
-            className="hover:text-gray-800 transition-colors"
-          >
+          <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="hover:text-gray-800 transition-colors">
             <TwitterIcon />
           </a>
-          <a
-            href="https://facebook.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Facebook"
-            className="hover:text-gray-800 transition-colors"
-          >
+          <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-gray-800 transition-colors">
             <FacebookIcon />
           </a>
-          <a
-            href="https://instagram.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Instagram"
-            className="hover:text-gray-800 transition-colors"
-          >
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-gray-800 transition-colors">
             <InstagramIcon />
           </a>
         </div>

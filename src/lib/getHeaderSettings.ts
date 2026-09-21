@@ -2,7 +2,8 @@ import { cache } from 'react'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 
-export type NavItem = { label: string; url: string; icon?: string }
+export type ChildNavItem = { label: string; url: string }
+export type NavItem = { label: string; url: string; icon?: string; children?: ChildNavItem[] }
 
 export type HeaderNav = {
   mainMenuItems: NavItem[]
@@ -32,6 +33,10 @@ export const getHeaderSettings = cache(async (): Promise<HeaderNav | null> => {
       label: item.label ?? '',
       url: toUrl(item),
       icon: item.icon || undefined,
+      children: Array.isArray(item.children) && item.children.length > 0
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? item.children.map((c: any) => ({ label: c.label ?? '', url: toUrl(c) }))
+        : undefined,
     }))
 
     return { mainMenuItems, sidebarMenuItems }
