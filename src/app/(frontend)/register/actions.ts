@@ -35,8 +35,10 @@ export type RegistrationInput = {
   parentLastName: string
   parentEmail: string
   parentPhone: string
-  emergencyContactName?: string
+  emergencyContactFirstName?: string
+  emergencyContactLastName?: string
   emergencyContactPhone?: string
+  emergencyContactEmail?: string
   students: Student[]
   schoolId: number | string
   seasonId: number | string
@@ -179,8 +181,10 @@ export async function submitRegistration(
         parentLastName: data.parentLastName,
         parentEmail: data.parentEmail,
         parentPhone: data.parentPhone,
-        emergencyContactName: data.emergencyContactName,
+        emergencyContactFirstName: data.emergencyContactFirstName,
+        emergencyContactLastName: data.emergencyContactLastName,
         emergencyContactPhone: data.emergencyContactPhone,
+        emergencyContactEmail: data.emergencyContactEmail,
         students: data.students.map((s) => ({
           firstName: s.firstName,
           ...(s.lastName       ? { lastName: s.lastName }             : {}),

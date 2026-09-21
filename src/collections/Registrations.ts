@@ -38,14 +38,29 @@ export const Registrations: CollectionConfig = {
       type: 'row',
       fields: [
         {
-          name: 'emergencyContactName',
+          name: 'emergencyContactFirstName',
           type: 'text',
-          label: 'Emergency Contact Name',
+          label: 'Emergency Contact First Name',
         },
+        {
+          name: 'emergencyContactLastName',
+          type: 'text',
+          label: 'Emergency Contact Last Name',
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
         {
           name: 'emergencyContactPhone',
           type: 'text',
           label: 'Emergency Contact Phone',
+        },
+        {
+          name: 'emergencyContactEmail',
+          type: 'email',
+          label: 'Emergency Contact Email',
         },
       ],
     },

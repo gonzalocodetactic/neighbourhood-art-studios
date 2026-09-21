@@ -307,8 +307,10 @@ function RegistrationModal({
   const [parentLastName, setParentLastName]   = useState('')
   const [parentEmail, setParentEmail]         = useState('')
   const [parentPhone, setParentPhone]         = useState('')
-  const [ecName, setEcName]                   = useState('')
+  const [ecFirstName, setEcFirstName]         = useState('')
+  const [ecLastName, setEcLastName]           = useState('')
   const [ecPhone, setEcPhone]                 = useState('')
+  const [ecEmail, setEcEmail]                 = useState('')
 
   const studentFields = variation.perStudentFields ?? DEFAULT_STUDENT_FIELDS
 
@@ -342,8 +344,10 @@ function RegistrationModal({
       parentLastName,
       parentEmail,
       parentPhone,
-      emergencyContactName:  ecName  || undefined,
-      emergencyContactPhone: ecPhone || undefined,
+      emergencyContactFirstName: ecFirstName || undefined,
+      emergencyContactLastName:  ecLastName  || undefined,
+      emergencyContactPhone:     ecPhone     || undefined,
+      emergencyContactEmail:     ecEmail     || undefined,
       students: students.map((s) => ({
         firstName: s.firstName,
         ...(s.age            ? { age: s.age }                       : {}),
@@ -455,16 +459,30 @@ function RegistrationModal({
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
-                placeholder="Contact name"
-                value={ecName}
-                onChange={(e) => setEcName(e.target.value)}
+                placeholder="First name"
+                value={ecFirstName}
+                onChange={(e) => setEcFirstName(e.target.value)}
+                className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+              />
+              <input
+                type="text"
+                placeholder="Last name"
+                value={ecLastName}
+                onChange={(e) => setEcLastName(e.target.value)}
                 className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
               />
               <input
                 type="tel"
-                placeholder="Contact phone"
+                placeholder="Phone number"
                 value={ecPhone}
                 onChange={(e) => setEcPhone(e.target.value)}
+                className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+              />
+              <input
+                type="email"
+                placeholder="Email address"
+                value={ecEmail}
+                onChange={(e) => setEcEmail(e.target.value)}
                 className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
               />
             </div>

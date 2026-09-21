@@ -82,7 +82,7 @@ export default async function StudentListsPage() {
         parentLastName:  parentLast,
         phone:           reg.parentPhone ?? '',
         email:           reg.parentEmail ?? '',
-        ecName:          r0.emergencyContactName  ?? '',
+        ecName:          [r0.emergencyContactFirstName, r0.emergencyContactLastName].filter(Boolean).join(' ') || '',
         ecPhone:         r0.emergencyContactPhone ?? '',
         studentFirstName: String(student.firstName ?? ''),
         studentLastName:  String(student.lastName  ?? ''),
