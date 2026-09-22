@@ -7,6 +7,13 @@ export const HeaderSettings: GlobalConfig = {
   fields: [
     { name: 'logo', type: 'upload', relationTo: 'media', label: 'Logo' },
     {
+      name: 'logoMaxWidth',
+      type: 'number',
+      label: 'Logo Max Width (px)',
+      defaultValue: 120,
+      admin: { description: 'Controls the display width of the logo in the sidebar (pixels).' },
+    },
+    {
       name: 'mainMenuItems',
       type: 'array',
       label: 'Main Menu Items',

@@ -8,6 +8,7 @@ export type LogoMedia = { url: string; alt: string }
 
 export type HeaderNav = {
   logo: LogoMedia | null
+  logoMaxWidth: number
   mainMenuItems: NavItem[]
   sidebarMenuItems: NavItem[]
 }
@@ -47,7 +48,9 @@ export const getHeaderSettings = cache(async (): Promise<HeaderNav | null> => {
         ? { url: String(rawLogo.url), alt: String(rawLogo.alt ?? '') }
         : null
 
-    return { logo, mainMenuItems, sidebarMenuItems }
+    const logoMaxWidth: number = settings?.logoMaxWidth ?? 120
+
+    return { logo, logoMaxWidth, mainMenuItems, sidebarMenuItems }
   } catch {
     return null
   }

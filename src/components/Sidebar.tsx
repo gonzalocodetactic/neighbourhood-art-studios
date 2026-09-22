@@ -66,7 +66,15 @@ function InstagramIcon() {
   )
 }
 
-export default function Sidebar({ sidebarItems, logo }: { sidebarItems?: NavItem[]; logo?: LogoMedia | null }) {
+export default function Sidebar({
+  sidebarItems,
+  logo,
+  logoMaxWidth = 84,
+}: {
+  sidebarItems?: NavItem[]
+  logo?: LogoMedia | null
+  logoMaxWidth?: number
+}) {
   const pathname = usePathname()
   const items = sidebarItems && sidebarItems.length > 0 ? sidebarItems : FALLBACK_NAV
 
@@ -101,13 +109,14 @@ export default function Sidebar({ sidebarItems, logo }: { sidebarItems?: NavItem
             <Image
               src={logo.url}
               alt={logo.alt || 'Neighbourhood Art Studios'}
-              width={84}
-              height={84}
+              width={logoMaxWidth}
+              height={logoMaxWidth}
+              style={{ maxWidth: logoMaxWidth, height: 'auto' }}
               className="object-contain"
               unoptimized
             />
           ) : (
-            <NasLogo size={84} />
+            <NasLogo size={logoMaxWidth} />
           )}
         </Link>
       </div>
