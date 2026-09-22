@@ -31,6 +31,11 @@ export async function GET(
       ? r.students
       : []
 
+    // Fetch gstLabel from payment settings for display in receipt
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const psettings = (await payload.findGlobal({ slug: 'payment-settings' })) as any
+    const gstLabel: string = psettings?.gstLabel || 'GST (BC 5%)'
+
     return NextResponse.json({
       orderId: r.monerisOrderId ?? orderId,
       createdAt: r.createdAt,
@@ -41,7 +46,10 @@ export async function GET(
       product: productTitle,
       classDate: r.classDate ?? null,
       paymentStatus: r.paymentStatus,
-      totalPaid: r.totalPaid ?? null,
+      subtotal: r.subtotal ?? null,
+      gstAmount: r.gstAmount ?? null,
+      gstLabel,
+      totalAmount: r.totalAmount ?? null,
     })
   } catch (err) {
     console.error('[api/order]', err)

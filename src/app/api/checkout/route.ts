@@ -79,7 +79,15 @@ export async function POST(request: NextRequest) {
 
     const unitPrice: number = variation?.price ?? 0
     const studentCount = students.length
-    const totalAmount = unitPrice * studentCount
+
+    // GST from payment settings
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const settings = (await payload.findGlobal({ slug: 'payment-settings' })) as any
+    const gstEnabled: boolean = settings?.gstEnabled ?? true
+    const gstRate: number = typeof settings?.gstRate === 'number' ? settings.gstRate : 5
+    const subtotal = unitPrice * studentCount
+    const gstAmount = gstEnabled ? Math.round(subtotal * gstRate / 100) : 0
+    const totalAmount = subtotal + gstAmount
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const reg = await payload.create({
@@ -101,6 +109,8 @@ export async function POST(request: NextRequest) {
         checkoutAnswers: checkoutAnswers ?? [],
         unitPrice,
         studentCount,
+        subtotal,
+        gstAmount,
         totalAmount,
         paymentStatus: 'pending',
         attendanceStatus: 'enrolled',
@@ -116,6 +126,8 @@ export async function POST(request: NextRequest) {
       monerisOrderId,
       unitPrice,
       studentCount,
+      subtotal,
+      gstAmount,
       totalAmount,
     })
   } catch (err) {

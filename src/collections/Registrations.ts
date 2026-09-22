@@ -8,12 +8,21 @@ export const Registrations: CollectionConfig = {
   },
   hooks: {
     beforeChange: [
-      ({ data }) => {
-        const count = Array.isArray(data.students) ? data.students.length : (data.studentCount ?? 0)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ({ data, originalDoc }: any) => {
+        const students = Array.isArray(data.students) ? data.students
+          : Array.isArray(originalDoc?.students) ? originalDoc.students : []
+        const count = students.length > 0 ? students.length : (data.studentCount ?? originalDoc?.studentCount ?? 0)
         data.studentCount = count
-        if (typeof data.unitPrice === 'number' && data.unitPrice >= 0 && count > 0) {
-          data.totalAmount = data.unitPrice * count
-        }
+
+        const unitPrice: number = data.unitPrice ?? originalDoc?.unitPrice ?? 0
+        const subtotal = unitPrice * count
+        data.subtotal = subtotal
+
+        // gstAmount is set externally (by checkout); keep existing value for partial updates
+        const gstAmount: number = data.gstAmount ?? originalDoc?.gstAmount ?? 0
+        data.totalAmount = subtotal + gstAmount
+
         return data
       },
     ],
@@ -217,11 +226,29 @@ export const Registrations: CollectionConfig = {
           },
         },
         {
+          name: 'subtotal',
+          type: 'number',
+          label: 'Subtotal (CAD cents)',
+          admin: {
+            description: 'Auto-calculated: unitPrice × studentCount (before tax).',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'gstAmount',
+          type: 'number',
+          label: 'GST Amount (CAD cents)',
+          admin: {
+            description: 'GST charged on this order, in CAD cents.',
+            readOnly: true,
+          },
+        },
+        {
           name: 'totalAmount',
           type: 'number',
           label: 'Total Amount (CAD cents)',
           admin: {
-            description: 'Auto-calculated: unitPrice × studentCount.',
+            description: 'Auto-calculated: subtotal + gstAmount.',
             readOnly: true,
           },
         },

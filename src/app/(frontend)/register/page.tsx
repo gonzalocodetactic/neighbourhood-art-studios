@@ -1,6 +1,7 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import RegisterClient, { type RegisterPageData } from './RegisterClient'
+import { getPaymentSettings } from '@/lib/getPaymentSettings'
 
 // Safely coerce a relationship field (populated obj or raw ID) to its ID
 function getId(val: unknown): number | string {
@@ -12,7 +13,7 @@ export default async function RegisterPage() {
   const payload = await getPayload({ config: configPromise })
 
   // ── parallel fetches ─────────────────────────────────────────────────────
-  const [citiesRes, schoolsRes, seasonsRes, productsRes, regsRes] = await Promise.all([
+  const [citiesRes, schoolsRes, seasonsRes, productsRes, regsRes, gstSettings] = await Promise.all([
     payload.find({ collection: 'cities', limit: 300, sort: 'title' }),
     payload.find({
       collection: 'schools',
@@ -43,6 +44,7 @@ export default async function RegisterPage() {
         ],
       },
     }),
+    getPaymentSettings(),
   ])
 
   // ── Build enrollment count map keyed by `productId-schoolId-seasonId` ────
@@ -128,6 +130,7 @@ export default async function RegisterPage() {
       schools={schools}
       seasons={seasons}
       variations={variations}
+      gstSettings={gstSettings}
     />
   )
 }

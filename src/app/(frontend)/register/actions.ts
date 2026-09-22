@@ -96,17 +96,9 @@ export async function initiateMonerisCheckout(
     })
     if (!reg) return { error: 'Registration not found' }
 
-    // Resolve price from matching product variation
+    // Use stored totalAmount (subtotal + GST), computed at submitRegistration time
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const product = reg.product as any
-    const schoolId = String((reg.school as any)?.id ?? reg.school)
-    const seasonId = String((reg.season as any)?.id ?? reg.season)
-    const variation = (product?.variations ?? []).find((v: any) => {
-      const vs  = String(v.school?.id ?? v.school)
-      const vss = String(v.season?.id ?? v.season)
-      return vs === schoolId && vss === seasonId
-    })
-    const cents: number = variation?.price ?? 0
+    const cents: number = (reg as any).totalAmount ?? 0
     const amount = (cents / 100).toFixed(2)
 
     // Fetch global payment settings
@@ -173,6 +165,26 @@ export async function submitRegistration(
   try {
     const payload = await getPayload({ config: configPromise })
 
+    // Resolve unitPrice from the matching product variation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const product = await payload.findByID({ collection: 'products', id: data.productId as any, depth: 0 }) as any
+    const variations: any[] = product?.variations ?? []
+    const variation = variations.find((v: any) =>
+      String(v.school?.id ?? v.school) === String(data.schoolId) &&
+      String(v.season?.id ?? v.season) === String(data.seasonId),
+    )
+    const unitPrice: number = variation?.price ?? 0
+
+    // GST from payment settings
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const settings = (await payload.findGlobal({ slug: 'payment-settings' })) as any
+    const gstEnabled: boolean = settings?.gstEnabled ?? true
+    const gstRate: number = typeof settings?.gstRate === 'number' ? settings.gstRate : 5
+    const studentCount = data.students.length
+    const subtotal = unitPrice * studentCount
+    const gstAmount = gstEnabled ? Math.round(subtotal * gstRate / 100) : 0
+    const totalAmount = subtotal + gstAmount
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const created = await payload.create({
       collection: 'registrations',
@@ -197,6 +209,11 @@ export async function submitRegistration(
         season: data.seasonId,
         product: data.productId,
         checkoutAnswers: data.checkoutAnswers,
+        unitPrice,
+        studentCount,
+        subtotal,
+        gstAmount,
+        totalAmount,
         paymentStatus: 'pending',
         attendanceStatus: 'enrolled',
         ...(data.classDate ? { classDate: data.classDate } : {}),

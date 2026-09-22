@@ -13,7 +13,10 @@ type OrderData = {
   product: string
   classDate: string | null
   paymentStatus: string
-  totalPaid: number | null
+  subtotal: number | null
+  gstAmount: number | null
+  gstLabel: string
+  totalAmount: number | null
 }
 
 type Props = {
@@ -29,6 +32,11 @@ const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   refunded: 'bg-gray-100 text-gray-600',
   waived: 'bg-blue-100 text-blue-700',
+}
+
+function formatCents(cents: number | null) {
+  if (cents == null) return '—'
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100)
 }
 
 function formatDate(iso: string) {
@@ -174,10 +182,20 @@ function OrderSummaryInner({
                     label="Payment Status"
                     value={<StatusBadge status={order.paymentStatus} />}
                   />
-                  {order.totalPaid != null && (
+                  {order.subtotal != null && order.subtotal > 0 && (
+                    <Row label="Subtotal" value={formatCents(order.subtotal)} />
+                  )}
+                  {order.gstAmount != null && order.gstAmount > 0 && (
+                    <Row label={order.gstLabel || 'GST'} value={formatCents(order.gstAmount)} />
+                  )}
+                  {order.totalAmount != null && order.totalAmount > 0 && (
                     <Row
                       label="Total Paid"
-                      value={`$${Number(order.totalPaid).toFixed(2)} CAD`}
+                      value={
+                        <span className="font-semibold text-gray-900">
+                          {formatCents(order.totalAmount)}
+                        </span>
+                      }
                     />
                   )}
                 </tbody>

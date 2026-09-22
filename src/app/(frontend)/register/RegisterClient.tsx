@@ -5,10 +5,17 @@ import { initiateMonerisCheckout, submitRegistration, submitWaitlist, type Check
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
+export type GstSettings = {
+  gstEnabled: boolean
+  gstRate: number
+  gstLabel: string
+}
+
 export type RegisterPageData = {
   cities: Array<{ id: number | string; title: string }>
   schools: Array<{ id: number | string; title: string; cityId: number | string }>
   seasons: Array<{ id: number | string; title: string }>
+  gstSettings: GstSettings
   variations: Array<{
     variationKey: string
     productId: number | string
@@ -300,10 +307,12 @@ const EMPTY_STUDENT: Record<string, string> = { firstName: '' }
 
 function RegistrationModal({
   variation,
+  gstSettings,
   onClose,
   onSuccess,
 }: {
   variation: Variation
+  gstSettings: GstSettings
   onClose: () => void
   onSuccess: () => void
 }) {
@@ -335,6 +344,11 @@ function RegistrationModal({
   const updateStudent = (idx: number, field: string, val: string) => {
     setStudents((prev) => prev.map((s, i) => (i === idx ? { ...s, [field]: val } : s)))
   }
+
+  // ── Reactive price / GST ──────────────────────────────────────────────────
+  const subtotal    = variation.price * students.length
+  const gstAmount   = gstSettings.gstEnabled ? Math.round(subtotal * gstSettings.gstRate / 100) : 0
+  const totalAmount = subtotal + gstAmount
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -643,6 +657,31 @@ function RegistrationModal({
             </section>
           )}
 
+          {/* Order Summary */}
+          <section className="bg-gray-50 rounded-xl px-4 py-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
+              Order Summary
+            </h3>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">
+                  {variation.productTitle} × {students.length} student{students.length !== 1 ? 's' : ''}
+                </span>
+                <span className="text-gray-800">{formatPrice(subtotal)}</span>
+              </div>
+              {gstSettings.gstEnabled && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">{gstSettings.gstLabel}</span>
+                  <span className="text-gray-800">{formatPrice(gstAmount)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-sm border-t border-gray-200 pt-2 mt-1">
+                <span className="font-bold text-gray-900">Total</span>
+                <span className="font-bold text-gray-900">{formatPrice(totalAmount)}</span>
+              </div>
+            </div>
+          </section>
+
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
               {error}
@@ -654,7 +693,12 @@ function RegistrationModal({
             disabled={isPending}
             className="w-full py-3 text-sm font-bold text-white bg-[#3B4BC8] rounded-xl hover:bg-[#2D3AAA] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
           >
-            {isPending ? 'Redirecting to payment…' : `Proceed to Payment · ${formatPrice(variation.price)}`}
+            {isPending
+              ? 'Redirecting to payment…'
+              : gstSettings.gstEnabled
+                ? `Proceed to Payment — ${formatPrice(subtotal)} + ${gstSettings.gstRate}% GST (${formatPrice(totalAmount)})`
+                : `Proceed to Payment — ${formatPrice(totalAmount)}`
+            }
           </button>
 
           <p className="text-[11px] text-center text-gray-400">
@@ -883,6 +927,7 @@ export default function RegisterClient({
   schools,
   seasons,
   variations,
+  gstSettings,
 }: RegisterPageData) {
   const [cityId, setCityId] = useState('')
   const [schoolId, setSchoolId] = useState('')
@@ -1084,6 +1129,7 @@ export default function RegisterClient({
       {modalVariation && (
         <RegistrationModal
           variation={modalVariation}
+          gstSettings={gstSettings}
           onClose={() => setModalVariation(null)}
           onSuccess={() => {
             setModalVariation(null)
