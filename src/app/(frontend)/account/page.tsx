@@ -38,12 +38,17 @@ export default async function AccountPage() {
       registrations={(regsRes.docs as any[]).map((r: any) => ({
         id: String(r.id),
         productTitle: typeof r.product === 'object' ? (r.product?.title ?? '') : String(r.product ?? ''),
+        productId: typeof r.product === 'object' ? String(r.product?.id ?? '') : String(r.product ?? ''),
         schoolName: typeof r.school === 'object' ? (r.school?.title ?? '') : String(r.school ?? ''),
         seasonName: typeof r.season === 'object' ? (r.season?.title ?? '') : String(r.season ?? ''),
         studentCount: r.studentCount ?? 0,
+        unitPrice: r.unitPrice ?? 0,
+        subtotal: r.subtotal ?? 0,
+        gstAmount: r.gstAmount ?? 0,
         totalAmount: r.totalAmount ?? 0,
         paymentStatus: r.paymentStatus ?? 'pending',
         attendanceStatus: r.attendanceStatus ?? 'enrolled',
+        monerisOrderId: r.monerisOrderId ?? '',
         createdAt: r.createdAt ?? '',
         students: Array.isArray(r.students)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -3,17 +3,21 @@ import { getPayload } from 'payload'
 import RegisterClient, { type RegisterPageData } from './RegisterClient'
 import { getPaymentSettings } from '@/lib/getPaymentSettings'
 
-// Safely coerce a relationship field (populated obj or raw ID) to its ID
 function getId(val: unknown): number | string {
   if (val && typeof val === 'object' && 'id' in val) return (val as { id: number | string }).id
   return val as number | string
+}
+
+function getTitle(val: unknown): string {
+  if (val && typeof val === 'object' && 'title' in val) return (val as { title: string }).title ?? ''
+  return ''
 }
 
 export default async function RegisterPage() {
   const payload = await getPayload({ config: configPromise })
 
   // ── parallel fetches ─────────────────────────────────────────────────────
-  const [citiesRes, schoolsRes, seasonsRes, productsRes, regsRes, gstSettings] = await Promise.all([
+  const [citiesRes, schoolsRes, seasonsRes, productsRes, regsRes, gstSettings, termsRes] = await Promise.all([
     payload.find({ collection: 'cities', limit: 300, sort: 'title' }),
     payload.find({
       collection: 'schools',
@@ -45,6 +49,7 @@ export default async function RegisterPage() {
       },
     }),
     getPaymentSettings(),
+    payload.find({ collection: 'pages', where: { slug: { equals: 'terms-and-conditions' } }, limit: 1, depth: 0 }),
   ])
 
   // ── Build enrollment count map keyed by `productId-schoolId-seasonId` ────
@@ -111,8 +116,8 @@ export default async function RegisterPage() {
         price: v.price ?? 0,
         capacity: v.capacity ?? 20,
         enrolled: enrolledMap.get(key) ?? 0,
-        dayOfWeek: v.dayOfWeek || undefined,
-        timeSlot: v.timeSlot || undefined,
+        schoolName: getTitle(v.school),
+        seasonName: getTitle(v.season),
         perStudentFields,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         checkoutFields: (product.checkoutFields ?? []).map((f: any) => ({
@@ -124,6 +129,9 @@ export default async function RegisterPage() {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const termsContent: string = (termsRes.docs[0] as any)?.termsContent ?? ''
+
   return (
     <RegisterClient
       cities={cities}
@@ -131,6 +139,7 @@ export default async function RegisterPage() {
       seasons={seasons}
       variations={variations}
       gstSettings={gstSettings}
+      termsContent={termsContent}
     />
   )
 }

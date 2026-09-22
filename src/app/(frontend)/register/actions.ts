@@ -173,7 +173,7 @@ export async function submitRegistration(
       String(v.school?.id ?? v.school) === String(data.schoolId) &&
       String(v.season?.id ?? v.season) === String(data.seasonId),
     )
-    const unitPrice: number = variation?.price ?? 0
+    const unitPrice: number = Math.round((variation?.price ?? 0) * 100)
 
     // GST from payment settings
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

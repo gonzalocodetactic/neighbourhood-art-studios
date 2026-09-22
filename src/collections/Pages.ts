@@ -153,6 +153,15 @@ export const Pages: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
+      name: 'termsContent',
+      type: 'textarea',
+      label: 'Terms & Conditions Text',
+      admin: {
+        description: 'Plain-text terms shown inline in the registration modal (only used on the terms-and-conditions page).',
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'layout',
       type: 'blocks',
       blocks: [

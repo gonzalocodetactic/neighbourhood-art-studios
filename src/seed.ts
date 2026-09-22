@@ -205,7 +205,7 @@ async function main() {
   const productDefs = [
     {
       title: 'Art Classes At Your School',
-      price: 18000, // $180.00 CAD (stored as cents)
+      price: 180.00, // $180.00 CAD
       capacity: 20,
       pairs: ART_PAIRS,
     },
@@ -236,7 +236,7 @@ async function main() {
     })
 
     console.log(`  product [+]    ${def.title}`)
-    console.log(`    ${variations.length} variations · $${(def.price / 100).toFixed(2)} CAD · capacity ${def.capacity}`)
+    console.log(`    ${variations.length} variations · $${def.price.toFixed(2)} CAD · capacity ${def.capacity}`)
   }
 
   console.log('\nSeed complete.')

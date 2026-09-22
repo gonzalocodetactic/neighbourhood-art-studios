@@ -6,6 +6,11 @@ export const Products: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'updatedAt'],
     components: {
+      edit: {
+        beforeDocumentControls: [
+          '/src/components/admin/BulkVariationModal#BulkVariationModal',
+        ],
+      },
       views: {
         edit: {
           bulkGenerator: {
@@ -61,7 +66,8 @@ export const Products: CollectionConfig = {
           required: true,
           min: 0,
           admin: {
-            description: 'Price in CAD cents (e.g. 15000 = $150.00)',
+            description: 'Price in CAD dollars (e.g. 180.00)',
+            step: 0.01,
           },
         },
         {
@@ -71,24 +77,6 @@ export const Products: CollectionConfig = {
           min: 1,
           admin: {
             description: 'Maximum number of students for this variation.',
-          },
-        },
-        {
-          name: 'dayOfWeek',
-          type: 'text',
-          label: 'Day of Week',
-          admin: {
-            placeholder: 'e.g. Tuesday',
-            description: 'Optional: the day this class runs.',
-          },
-        },
-        {
-          name: 'timeSlot',
-          type: 'text',
-          label: 'Time Slot',
-          admin: {
-            placeholder: 'e.g. 3:30 PM – 4:30 PM',
-            description: 'Optional: the time window for this class.',
           },
         },
       ],

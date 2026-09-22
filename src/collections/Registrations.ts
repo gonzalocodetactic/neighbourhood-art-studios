@@ -7,6 +7,26 @@ export const Registrations: CollectionConfig = {
     defaultColumns: ['parentFirstName', 'parentLastName', 'parentEmail', 'product', 'studentCount', 'totalAmount', 'paymentStatus', 'attendanceStatus', 'createdAt'],
   },
   hooks: {
+    afterChange: [
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async ({ doc, req }: any) => {
+        const parentId = doc.parent
+          ? (typeof doc.parent === 'object' ? doc.parent.id : doc.parent)
+          : null
+        if (!parentId) return
+        try {
+          const { totalDocs } = await req.payload.count({
+            collection: 'registrations',
+            where: { parent: { equals: parentId } },
+          })
+          await req.payload.update({
+            collection: 'parents',
+            id: parentId,
+            data: { registrationCount: totalDocs } as any,
+          })
+        } catch { /* silent — count sync is non-critical */ }
+      },
+    ],
     beforeChange: [
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ({ data, originalDoc }: any) => {
