@@ -1,5 +1,6 @@
 import { CascadingMediaContent } from './blocks/CascadingMediaContent'
 import { FormBlock } from './blocks/FormBlock'
+import { HorizontalSliderBlock } from './blocks/HorizontalSliderBlock'
 import { CallToAction } from './blocks/CallToAction'
 import { FeatureGrid } from './blocks/FeatureGrid'
 import { FooterCta } from './blocks/FooterCta'
@@ -37,6 +38,8 @@ export function BlockRenderer({ block }: { block: AnyBlock }) {
       return <CallToAction {...b} />
     case 'formBlock':
       return <FormBlock {...b} />
+    case 'horizontalSlider':
+      return <HorizontalSliderBlock {...b} />
     default:
       return null
   }

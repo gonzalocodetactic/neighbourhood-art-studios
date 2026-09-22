@@ -52,6 +52,18 @@ body {
 .cascade-wrap .cascade-img:nth-child(3) { z-index: 2; transform: rotate(-1.5deg) translate(20px, 60px); }
 .cascade-wrap .cascade-img:nth-child(4) { z-index: 1; transform: rotate(4deg) translate(80px, 50px); }
 
+/* ── Horizontal image slider ─────────────────────────────────────────────────── */
+@keyframes slider-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.slider-track {
+  display: flex;
+  width: max-content;
+  animation: slider-scroll linear infinite;
+}
+.slider-track:hover { animation-play-state: paused; }
+
 /* ── Testimonial quote marks ─────────────────────────────────────────────────── */
 .testimonial-quote::before {
   content: '\201C';

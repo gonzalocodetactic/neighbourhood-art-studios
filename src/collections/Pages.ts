@@ -3,6 +3,7 @@ import { HeroBlock } from '../blocks/HeroBlock'
 import { FeatureGridBlock } from '../blocks/FeatureGridBlock'
 import { CallToActionBlock } from '../blocks/CallToActionBlock'
 import { FormBlock } from '../blocks/FormBlock'
+import { HorizontalSliderBlock } from '../blocks/HorizontalSliderBlock'
 
 // ── Blocks ────────────────────────────────────────────────────────────────────
 
@@ -161,6 +162,7 @@ export const Pages: CollectionConfig = {
         FeatureGridBlock,
         CallToActionBlock,
         FormBlock,
+        HorizontalSliderBlock,
       ],
     },
   ],
