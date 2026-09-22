@@ -4,7 +4,19 @@ export const Registrations: CollectionConfig = {
   slug: 'registrations',
   admin: {
     useAsTitle: 'parentFirstName',
-    defaultColumns: ['parentFirstName', 'parentLastName', 'parentEmail', 'product', 'paymentStatus', 'attendanceStatus', 'createdAt'],
+    defaultColumns: ['parentFirstName', 'parentLastName', 'parentEmail', 'product', 'studentCount', 'totalAmount', 'paymentStatus', 'attendanceStatus', 'createdAt'],
+  },
+  hooks: {
+    beforeChange: [
+      ({ data }) => {
+        const count = Array.isArray(data.students) ? data.students.length : (data.studentCount ?? 0)
+        data.studentCount = count
+        if (typeof data.unitPrice === 'number' && data.unitPrice >= 0 && count > 0) {
+          data.totalAmount = data.unitPrice * count
+        }
+        return data
+      },
+    ],
   },
   fields: [
     {
@@ -78,13 +90,18 @@ export const Registrations: CollectionConfig = {
         {
           name: 'lastName',
           type: 'text',
-          admin: { hidden: true },
         },
         {
           name: 'age',
           type: 'text',
           label: 'Age',
           admin: { placeholder: 'e.g. 8' },
+        },
+        {
+          name: 'grade',
+          type: 'text',
+          label: 'Grade',
+          admin: { placeholder: 'e.g. Grade 3' },
         },
         {
           name: 'gender',
@@ -96,6 +113,24 @@ export const Registrations: CollectionConfig = {
             { label: 'Non-binary', value: 'non-binary' },
             { label: 'Prefer not to say', value: 'prefer-not-to-say' },
           ],
+        },
+        {
+          name: 'medicalNotes',
+          type: 'textarea',
+          label: 'Medical / Allergy Notes',
+          admin: { placeholder: 'e.g. Nut allergy — carries EpiPen' },
+        },
+        {
+          name: 'emergencyContactName',
+          type: 'text',
+          label: 'Emergency Contact Name',
+          admin: { placeholder: 'e.g. Bob Doe' },
+        },
+        {
+          name: 'emergencyContactPhone',
+          type: 'text',
+          label: 'Emergency Contact Phone',
+          admin: { placeholder: 'e.g. 604-555-0200' },
         },
         {
           name: 'teacherName',
@@ -150,6 +185,47 @@ export const Registrations: CollectionConfig = {
         description: 'Set automatically when payment is initiated.',
         readOnly: true,
       },
+    },
+    {
+      name: 'legacyWooOrderId',
+      type: 'text',
+      label: 'Legacy WooCommerce Order ID',
+      admin: {
+        description: 'Original WooCommerce order ID for orders migrated from the old site.',
+        readOnly: true,
+      },
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'unitPrice',
+          type: 'number',
+          label: 'Unit Price (CAD cents)',
+          admin: {
+            description: 'Price per student in CAD cents (e.g. 18000 = $180.00). Set from product variation at checkout.',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'studentCount',
+          type: 'number',
+          label: 'Student Count',
+          admin: {
+            description: 'Auto-calculated from the number of students in this registration.',
+            readOnly: true,
+          },
+        },
+        {
+          name: 'totalAmount',
+          type: 'number',
+          label: 'Total Amount (CAD cents)',
+          admin: {
+            description: 'Auto-calculated: unitPrice × studentCount.',
+            readOnly: true,
+          },
+        },
+      ],
     },
     {
       name: 'checkoutAnswers',

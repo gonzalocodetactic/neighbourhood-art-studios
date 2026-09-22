@@ -28,6 +28,16 @@ export default buildConfig({
         Logo: '/src/components/admin/Logo#Logo',
         Icon: '/src/components/admin/Icon#Icon',
       },
+      views: {
+        studentRoster: {
+          Component: '/src/components/admin/StudentRoster#StudentRoster',
+          path: '/student-roster',
+          meta: {
+            title: 'Student Roster',
+            description: 'Flattened class roster across all registrations.',
+          },
+        },
+      },
     },
     meta: {
       favicon: '/favicon.ico',
