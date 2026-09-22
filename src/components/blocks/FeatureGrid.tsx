@@ -13,12 +13,11 @@ export function FeatureGrid({ title, features = [] }: { title: string; features?
       </h2>
       <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {features.map((f, i) => {
-          const iconUrl = getMediaUrl(f.icon)
           return (
             <div key={i} className="flex flex-col items-center text-center gap-3">
-              {iconUrl && (
+              {f.icon && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={iconUrl} alt={f.icon?.alt ?? f.title} className="w-14 h-14 object-contain" />
+                <img src={getMediaUrl(f.icon)} alt={f.icon.alt ?? f.title} className="w-14 h-14 object-contain" />
               )}
               <h3 className="text-base font-bold text-gray-900">{f.title}</h3>
               {f.description && <p className="text-sm text-gray-600 leading-relaxed">{f.description}</p>}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { getMediaUrl, getMediaAlt } from '@/utilities/getMediaUrl'
+import { getMediaUrl, getMediaAlt, PLACEHOLDER_SRC } from '@/utilities/getMediaUrl'
 
 type MediaDoc = { url?: string; alt?: string }
 type GalleryImage = { id?: string; image?: MediaDoc | number | string | null; caption?: string | null }
@@ -36,7 +36,7 @@ export function LightboxGalleryBlock({ title, images = [] }: Props) {
   }, [idx])
 
   const active = idx !== null ? images[idx] : null
-  const activeUrl = active ? getMediaUrl(active.image) : null
+  const activeUrl = active ? getMediaUrl(active.image) : PLACEHOLDER_SRC
 
   return (
     <section className="py-12 px-6 bg-gray-50">
@@ -117,7 +117,7 @@ export function LightboxGalleryBlock({ title, images = [] }: Props) {
 
           {/* Image */}
           <img
-            src={activeUrl ?? ''}
+            src={activeUrl}
             alt={active ? (getMediaAlt(active.image) || active.caption || '') : ''}
             className="max-h-[88vh] max-w-[88vw] object-contain rounded shadow-2xl"
             onClick={e => e.stopPropagation()}

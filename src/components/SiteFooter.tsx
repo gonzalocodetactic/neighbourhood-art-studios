@@ -85,10 +85,10 @@ export default async function SiteFooter() {
         {/* Column 1: Logo */}
         <div className="flex items-start">
           <div className="bg-white rounded-full p-1">
-            {getMediaUrl(cms?.logo) ? (
+            {cms?.logo ? (
               <Image
-                src={getMediaUrl(cms?.logo)!}
-                alt={cms?.logo?.alt || 'Neighbourhood Art Studios'}
+                src={getMediaUrl(cms.logo)}
+                alt={cms.logo.alt || 'Neighbourhood Art Studios'}
                 width={logoMaxWidth}
                 height={logoMaxWidth}
                 style={{ maxWidth: logoMaxWidth, height: 'auto' }}

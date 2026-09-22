@@ -1,9 +1,11 @@
 type MediaInput = { url?: string; alt?: string } | number | string | null | undefined
 
-export function getMediaUrl(media: MediaInput): string | null {
-  if (!media || typeof media !== 'object') return null
+export const PLACEHOLDER_SRC = '/placeholder.jpg'
+
+export function getMediaUrl(media: MediaInput): string {
+  if (!media || typeof media !== 'object') return PLACEHOLDER_SRC
   const url = (media as { url?: string }).url
-  if (!url) return null
+  if (!url) return PLACEHOLDER_SRC
   // Prepend server origin for Payload relative paths so they resolve correctly
   // in SSR/API contexts or when served from a different port.
   if (url.startsWith('/')) {
