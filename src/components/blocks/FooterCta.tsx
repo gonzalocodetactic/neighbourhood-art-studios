@@ -1,16 +1,11 @@
-type MediaDoc = { url?: string; alt?: string }
+import { getMediaUrl } from '@/utilities/getMediaUrl'
 
 type FooterCtaProps = {
-  backgroundImage?: MediaDoc | number | string | null
+  backgroundImage?: { url?: string; alt?: string } | number | string | null
   topTagline?: string | null
   headline: string
   primaryCtaLabel?: string | null
   primaryCtaLink?: string | null
-}
-
-function resolveUrl(val: MediaDoc | number | string | null | undefined): string | null {
-  if (!val || typeof val !== 'object') return null
-  return (val as MediaDoc).url ?? null
 }
 
 export function FooterCta({
@@ -20,7 +15,7 @@ export function FooterCta({
   primaryCtaLabel,
   primaryCtaLink,
 }: FooterCtaProps) {
-  const imgUrl = resolveUrl(backgroundImage)
+  const imgUrl = getMediaUrl(backgroundImage)
 
   return (
     <section

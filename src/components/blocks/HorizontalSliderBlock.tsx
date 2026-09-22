@@ -1,5 +1,7 @@
 'use client'
 
+import { getMediaUrl, getMediaAlt } from '@/utilities/getMediaUrl'
+
 type MediaDoc = { url?: string; alt?: string }
 type Slide = {
   id?: string
@@ -11,15 +13,6 @@ type Props = {
   slides?: Slide[]
   speed?: number | null
   imageHeight?: number | null
-}
-
-function resolveUrl(val: MediaDoc | number | string | null | undefined): string | null {
-  if (!val || typeof val !== 'object') return null
-  return (val as MediaDoc).url ?? null
-}
-function resolveAlt(val: MediaDoc | number | string | null | undefined): string {
-  if (!val || typeof val !== 'object') return ''
-  return (val as MediaDoc).alt ?? ''
 }
 
 export function HorizontalSliderBlock({ slides = [], speed = 30, imageHeight = 320 }: Props) {
@@ -38,8 +31,8 @@ export function HorizontalSliderBlock({ slides = [], speed = 30, imageHeight = 3
         style={{ animationDuration: duration }}
       >
         {track.map((slide, i) => {
-          const url = resolveUrl(slide.image)
-          const alt = resolveAlt(slide.image)
+          const url = getMediaUrl(slide.image)
+          const alt = getMediaAlt(slide.image)
           return (
             <div
               key={`${slide.id ?? i}-${i}`}

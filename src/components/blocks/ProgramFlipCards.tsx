@@ -1,3 +1,5 @@
+import { getMediaUrl } from '@/utilities/getMediaUrl'
+
 type MediaDoc = { url?: string; alt?: string }
 
 type ProgramCard = {
@@ -15,11 +17,6 @@ type ProgramFlipCardsProps = {
   cards?: ProgramCard[]
 }
 
-function resolveUrl(val: MediaDoc | number | string | null | undefined): string | null {
-  if (!val || typeof val !== 'object') return null
-  return (val as MediaDoc).url ?? null
-}
-
 const CARD_GRADIENTS = [
   'linear-gradient(160deg,#0a0a1a 0%,#1a1a4e 100%)',
   'linear-gradient(160deg,#1a0a0a 0%,#4e1a1a 100%)',
@@ -28,7 +25,7 @@ const CARD_GRADIENTS = [
 ]
 
 function FlipCard({ card, index }: { card: ProgramCard; index: number }) {
-  const url = resolveUrl(card.backgroundImage)
+  const url = getMediaUrl(card.backgroundImage)
 
   return (
     <a href={card.link ?? '#'} className="flip-card h-72 block group">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { getMediaUrl, getMediaAlt } from '@/utilities/getMediaUrl'
 
 type MediaDoc = { url?: string; alt?: string }
 type GalleryImage = { id?: string; image?: MediaDoc | number | string | null; caption?: string | null }
@@ -8,15 +9,6 @@ type GalleryImage = { id?: string; image?: MediaDoc | number | string | null; ca
 type Props = {
   title?: string | null
   images?: GalleryImage[]
-}
-
-function resolveUrl(val: MediaDoc | number | string | null | undefined): string | null {
-  if (!val || typeof val !== 'object') return null
-  return (val as MediaDoc).url ?? null
-}
-function resolveAlt(val: MediaDoc | number | string | null | undefined): string {
-  if (!val || typeof val !== 'object') return ''
-  return (val as MediaDoc).alt ?? ''
 }
 
 export function LightboxGalleryBlock({ title, images = [] }: Props) {
@@ -44,7 +36,7 @@ export function LightboxGalleryBlock({ title, images = [] }: Props) {
   }, [idx])
 
   const active = idx !== null ? images[idx] : null
-  const activeUrl = active ? resolveUrl(active.image) : null
+  const activeUrl = active ? getMediaUrl(active.image) : null
 
   return (
     <section className="py-12 px-6 bg-gray-50">
@@ -61,8 +53,8 @@ export function LightboxGalleryBlock({ title, images = [] }: Props) {
         {/* Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {images.map((item, i) => {
-            const url = resolveUrl(item.image)
-            const alt = resolveAlt(item.image)
+            const url = getMediaUrl(item.image)
+            const alt = getMediaAlt(item.image)
             return (
               <button
                 key={item.id ?? i}
@@ -126,7 +118,7 @@ export function LightboxGalleryBlock({ title, images = [] }: Props) {
           {/* Image */}
           <img
             src={activeUrl ?? ''}
-            alt={active ? (resolveAlt(active.image) || active.caption || '') : ''}
+            alt={active ? (getMediaAlt(active.image) || active.caption || '') : ''}
             className="max-h-[88vh] max-w-[88vw] object-contain rounded shadow-2xl"
             onClick={e => e.stopPropagation()}
             draggable={false}

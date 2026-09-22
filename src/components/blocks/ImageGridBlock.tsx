@@ -1,3 +1,5 @@
+import { getMediaUrl, getMediaAlt } from '@/utilities/getMediaUrl'
+
 type MediaDoc = { url?: string; alt?: string }
 type GridImage = { id?: string; image?: MediaDoc | number | string | null; caption?: string | null }
 
@@ -5,15 +7,6 @@ type Props = {
   title?: string | null
   columns?: '2' | '3' | '4' | null
   images?: GridImage[]
-}
-
-function resolveUrl(val: MediaDoc | number | string | null | undefined): string | null {
-  if (!val || typeof val !== 'object') return null
-  return (val as MediaDoc).url ?? null
-}
-function resolveAlt(val: MediaDoc | number | string | null | undefined): string {
-  if (!val || typeof val !== 'object') return ''
-  return (val as MediaDoc).alt ?? ''
 }
 
 const colClass: Record<string, string> = {
@@ -39,8 +32,8 @@ export function ImageGridBlock({ title, columns = '3', images = [] }: Props) {
         )}
         <div className={`grid ${gridCols} gap-4`}>
           {images.map((item, i) => {
-            const url = resolveUrl(item.image)
-            const alt = resolveAlt(item.image)
+            const url = getMediaUrl(item.image)
+            const alt = getMediaAlt(item.image)
             return (
               <div key={item.id ?? i} className="relative aspect-[3/2] overflow-hidden rounded-lg bg-gray-200 group">
                 {url ? (

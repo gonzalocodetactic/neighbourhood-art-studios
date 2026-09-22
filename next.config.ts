@@ -6,12 +6,11 @@ const nextConfig: NextConfig = {
     position: 'bottom-right',
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
-      // Payload media served by the same host (needed when logo.url is absolute)
       { protocol: 'http',  hostname: 'localhost' },
       { protocol: 'https', hostname: 'localhost' },
-      // Add your production hostname here when deploying, e.g.:
-      // { protocol: 'https', hostname: 'yourdomain.com' },
+      // Add your production hostname here when deploying
     ],
   },
 }

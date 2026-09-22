@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { NasLogo } from './NasLogo'
 import type { LogoMedia, NavItem } from '@/lib/getHeaderSettings'
+import { getMediaUrl } from '@/utilities/getMediaUrl'
 
 const FALLBACK_NAV: NavItem[] = [
   { label: 'Home', url: '/' },
@@ -105,10 +106,10 @@ export default function Sidebar({
       {/* Logo */}
       <div className="flex justify-center pt-5 pb-3 px-4 border-b border-gray-100">
         <Link href="/" aria-label="Neighbourhood Art Studios Home">
-          {logo?.url ? (
+          {getMediaUrl(logo) ? (
             <Image
-              src={logo.url}
-              alt={logo.alt || 'Neighbourhood Art Studios'}
+              src={getMediaUrl(logo)!}
+              alt={logo?.alt || 'Neighbourhood Art Studios'}
               width={logoMaxWidth}
               height={logoMaxWidth}
               style={{ maxWidth: logoMaxWidth, height: 'auto' }}

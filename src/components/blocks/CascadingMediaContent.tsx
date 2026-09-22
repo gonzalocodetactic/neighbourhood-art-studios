@@ -1,4 +1,5 @@
 import { RichText } from '@payloadcms/richtext-lexical/react'
+import { getMediaUrl, getMediaAlt } from '@/utilities/getMediaUrl'
 
 type MediaDoc = { url?: string; alt?: string }
 
@@ -14,16 +15,6 @@ type CascadingMediaContentProps = {
   paragraph?: any
   direction?: 'imageLeft' | 'textLeft'
   images?: ImageItem[]
-}
-
-function resolveUrl(val: MediaDoc | number | string | null | undefined): string | null {
-  if (!val || typeof val !== 'object') return null
-  return (val as MediaDoc).url ?? null
-}
-
-function resolveAlt(val: MediaDoc | number | string | null | undefined): string {
-  if (!val || typeof val !== 'object') return ''
-  return (val as MediaDoc).alt ?? ''
 }
 
 // Placeholder gradients for when no real image is uploaded yet
@@ -46,8 +37,8 @@ function CascadeStack({ images }: { images: ImageItem[] }) {
   return (
     <div className="relative h-80 w-full cascade-wrap">
       {images.slice(0, 4).map((item, i) => {
-        const url = resolveUrl(item.image)
-        const alt = resolveAlt(item.image)
+        const url = getMediaUrl(item.image)
+        const alt = getMediaAlt(item.image)
         const style = CASCADE_STYLES[i]
 
         return (

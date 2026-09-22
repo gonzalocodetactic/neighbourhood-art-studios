@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { NasLogo } from './NasLogo'
 import { getFooterSettings } from '@/lib/getFooterSettings'
+import { getMediaUrl } from '@/utilities/getMediaUrl'
 
 const FALLBACK_NAV = [
   { label: 'Home', url: '/' },
@@ -84,10 +85,10 @@ export default async function SiteFooter() {
         {/* Column 1: Logo */}
         <div className="flex items-start">
           <div className="bg-white rounded-full p-1">
-            {cms?.logo?.url ? (
+            {getMediaUrl(cms?.logo) ? (
               <Image
-                src={cms.logo.url}
-                alt={cms.logo.alt || 'Neighbourhood Art Studios'}
+                src={getMediaUrl(cms?.logo)!}
+                alt={cms?.logo?.alt || 'Neighbourhood Art Studios'}
                 width={logoMaxWidth}
                 height={logoMaxWidth}
                 style={{ maxWidth: logoMaxWidth, height: 'auto' }}

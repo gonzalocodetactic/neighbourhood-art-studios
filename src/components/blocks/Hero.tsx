@@ -1,20 +1,15 @@
-type MediaDoc = { url?: string; alt?: string }
+import { getMediaUrl } from '@/utilities/getMediaUrl'
 
 type HeroBlockProps = {
   title: string
   subtitle?: string
   ctaLabel?: string
   ctaLink?: string
-  backgroundImage?: MediaDoc | number | string | null
-}
-
-function resolveUrl(val: MediaDoc | number | string | null | undefined): string | null {
-  if (!val || typeof val !== 'object') return null
-  return (val as MediaDoc).url ?? null
+  backgroundImage?: { url?: string; alt?: string } | number | string | null
 }
 
 export function Hero({ title, subtitle, ctaLabel, ctaLink, backgroundImage }: HeroBlockProps) {
-  const imgUrl = resolveUrl(backgroundImage)
+  const imgUrl = getMediaUrl(backgroundImage)
 
   return (
     <section

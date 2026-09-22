@@ -1,3 +1,5 @@
+import { getMediaUrl, getMediaAlt } from '@/utilities/getMediaUrl'
+
 type MediaDoc = { url?: string; alt?: string }
 
 type Instructor = {
@@ -11,16 +13,6 @@ type InstructorsGridProps = {
   subtitle?: string | null
   title: string
   instructors?: Instructor[]
-}
-
-function resolveUrl(val: MediaDoc | number | string | null | undefined): string | null {
-  if (!val || typeof val !== 'object') return null
-  return (val as MediaDoc).url ?? null
-}
-
-function resolveAlt(val: MediaDoc | number | string | null | undefined): string {
-  if (!val || typeof val !== 'object') return ''
-  return (val as MediaDoc).alt ?? ''
 }
 
 const AVATAR_GRADIENTS = [
@@ -52,8 +44,8 @@ export function InstructorsGrid({ subtitle, title, instructors = [] }: Instructo
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-8 justify-items-center">
         {instructors.map((instructor, i) => {
-          const url = resolveUrl(instructor.image)
-          const alt = resolveAlt(instructor.image)
+          const url = getMediaUrl(instructor.image)
+          const alt = getMediaAlt(instructor.image)
 
           return (
             <div key={instructor.id ?? i} className="flex flex-col items-center text-center gap-3">
