@@ -1,6 +1,8 @@
 import { CascadingMediaContent } from './blocks/CascadingMediaContent'
 import { FormBlock } from './blocks/FormBlock'
 import { HorizontalSliderBlock } from './blocks/HorizontalSliderBlock'
+import { AccordionBlock } from './blocks/AccordionBlock'
+import { ImageGridBlock } from './blocks/ImageGridBlock'
 import { CallToAction } from './blocks/CallToAction'
 import { FeatureGrid } from './blocks/FeatureGrid'
 import { FooterCta } from './blocks/FooterCta'
@@ -40,6 +42,10 @@ export function BlockRenderer({ block }: { block: AnyBlock }) {
       return <FormBlock {...b} />
     case 'horizontalSlider':
       return <HorizontalSliderBlock {...b} />
+    case 'accordionBlock':
+      return <AccordionBlock {...b} />
+    case 'imageGrid':
+      return <ImageGridBlock {...b} />
     default:
       return null
   }

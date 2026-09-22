@@ -44,21 +44,38 @@ export const Forms: CollectionConfig = {
               options: [
                 { label: 'Text', value: 'text' },
                 { label: 'Email', value: 'email' },
+                { label: 'Date Picker', value: 'date' },
                 { label: 'Textarea', value: 'textarea' },
                 { label: 'Select / Dropdown', value: 'select' },
+                { label: 'Checkbox Group', value: 'checkboxGroup' },
+                { label: 'Radio Buttons', value: 'radio' },
               ],
             },
             { name: 'required', type: 'checkbox', defaultValue: false },
           ],
         },
-        { name: 'placeholder', type: 'text' },
+        {
+          type: 'row',
+          fields: [
+            { name: 'placeholder', type: 'text' },
+            {
+              name: 'maxSelections',
+              type: 'number',
+              label: 'Max Selections',
+              admin: {
+                description: 'Checkbox group only.',
+                condition: (_, sib) => sib?.fieldType === 'checkboxGroup',
+              },
+            },
+          ],
+        },
         {
           name: 'selectOptions',
           type: 'array',
-          label: 'Dropdown Options',
+          label: 'Options',
           admin: {
-            description: 'For Select fields only.',
-            condition: (_, sib) => sib?.fieldType === 'select',
+            description: 'For Select, Checkbox Group, and Radio fields.',
+            condition: (_, sib) => ['select', 'checkboxGroup', 'radio'].includes(sib?.fieldType),
           },
           fields: [
             {
@@ -125,7 +142,7 @@ export const Forms: CollectionConfig = {
         {
           name: 'selectOptions',
           type: 'array',
-          label: 'Dropdown Options',
+          label: 'Dropdown Options (Select / Dropdown)',
           admin: {
             description: 'For Select fields only.',
             condition: (_, sib) => sib?.fieldType === 'select',

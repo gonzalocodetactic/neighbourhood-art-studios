@@ -4,6 +4,8 @@ import { FeatureGridBlock } from '../blocks/FeatureGridBlock'
 import { CallToActionBlock } from '../blocks/CallToActionBlock'
 import { FormBlock } from '../blocks/FormBlock'
 import { HorizontalSliderBlock } from '../blocks/HorizontalSliderBlock'
+import { AccordionBlock } from '../blocks/AccordionBlock'
+import { ImageGridBlock } from '../blocks/ImageGridBlock'
 
 // ── Blocks ────────────────────────────────────────────────────────────────────
 
@@ -163,6 +165,8 @@ export const Pages: CollectionConfig = {
         CallToActionBlock,
         FormBlock,
         HorizontalSliderBlock,
+        AccordionBlock,
+        ImageGridBlock,
       ],
     },
   ],
