@@ -6,10 +6,85 @@ export const Forms: CollectionConfig = {
   fields: [
     { name: 'title', type: 'text', required: true },
     {
+      name: 'formType',
+      type: 'select',
+      defaultValue: 'general',
+      required: true,
+      options: [
+        { label: 'General / Contact', value: 'general' },
+        { label: 'Student Registration', value: 'registration' },
+      ],
+    },
+
+    // ── General form fields ────────────────────────────────────────────────
+    {
+      name: 'fields',
+      type: 'array',
+      label: 'Form Fields',
+      admin: {
+        description: 'Fields rendered on the public-facing form.',
+        condition: (_, sib) => sib?.formType === 'general',
+      },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            { name: 'name', type: 'text', required: true, admin: { placeholder: 'camelCase key, e.g. fullName' } },
+            { name: 'label', type: 'text', required: true, admin: { placeholder: 'e.g. Full Name' } },
+          ],
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'fieldType',
+              type: 'select',
+              required: true,
+              defaultValue: 'text',
+              options: [
+                { label: 'Text', value: 'text' },
+                { label: 'Email', value: 'email' },
+                { label: 'Textarea', value: 'textarea' },
+                { label: 'Select / Dropdown', value: 'select' },
+              ],
+            },
+            { name: 'required', type: 'checkbox', defaultValue: false },
+          ],
+        },
+        { name: 'placeholder', type: 'text' },
+        {
+          name: 'selectOptions',
+          type: 'array',
+          label: 'Dropdown Options',
+          admin: {
+            description: 'For Select fields only.',
+            condition: (_, sib) => sib?.fieldType === 'select',
+          },
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                { name: 'label', type: 'text', required: true },
+                { name: 'value', type: 'text', required: true },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+
+    { name: 'submitButtonText', type: 'text', defaultValue: 'Send Message' },
+    { name: 'successMessage', type: 'text', defaultValue: 'Thank you! We\'ll be in touch soon.' },
+
+    // ── Student registration per-student fields ────────────────────────────
+    {
       name: 'perStudentFields',
       type: 'array',
       label: 'Per-Student Fields',
-      admin: { description: 'Dynamic fields shown per student in the registration modal.' },
+      admin: {
+        description: 'Dynamic fields shown per student in the registration modal.',
+        condition: (_, sib) => sib?.formType === 'registration',
+      },
       fields: [
         {
           type: 'row',

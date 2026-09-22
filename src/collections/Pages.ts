@@ -2,6 +2,7 @@ import type { Block, CollectionConfig } from 'payload'
 import { HeroBlock } from '../blocks/HeroBlock'
 import { FeatureGridBlock } from '../blocks/FeatureGridBlock'
 import { CallToActionBlock } from '../blocks/CallToActionBlock'
+import { FormBlock } from '../blocks/FormBlock'
 
 // ── Blocks ────────────────────────────────────────────────────────────────────
 
@@ -159,6 +160,7 @@ export const Pages: CollectionConfig = {
         FooterCtaBlock,
         FeatureGridBlock,
         CallToActionBlock,
+        FormBlock,
       ],
     },
   ],
