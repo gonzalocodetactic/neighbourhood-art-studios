@@ -111,22 +111,16 @@ export function CascadingMediaContent({
 
   return (
     <section className="py-16 px-12">
-      <div
-        className={`grid gap-12 items-center ${
-          direction === 'textLeft'
-            ? 'grid-cols-[1fr_auto]'
-            : 'grid-cols-[auto_1fr]'
-        }`}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center w-full">
         {direction === 'imageLeft' ? (
           <>
-            <div className="w-72">{mediaCol}</div>
-            {textCol}
+            <div className="col-span-1 w-full">{mediaCol}</div>
+            <div className="col-span-1 w-full">{textCol}</div>
           </>
         ) : (
           <>
-            {textCol}
-            <div className="w-72">{mediaCol}</div>
+            <div className="col-span-1 w-full">{textCol}</div>
+            <div className="col-span-1 w-full">{mediaCol}</div>
           </>
         )}
       </div>
