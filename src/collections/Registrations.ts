@@ -294,6 +294,15 @@ export const Registrations: CollectionConfig = {
       ],
     },
     {
+      name: 'parent',
+      type: 'relationship',
+      relationTo: 'parents',
+      label: 'Parent Account',
+      admin: {
+        description: 'Auto-linked to a parent account if one exists for this email.',
+      },
+    },
+    {
       type: 'row',
       fields: [
         {

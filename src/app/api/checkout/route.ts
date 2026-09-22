@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
     const product = await payload.findByID({ collection: 'products', id: productId as any, depth: 0 }) as any
     if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const variations: any[] = product.variations ?? []
     const variation = variations.find(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
         String(v.season?.id ?? v.season) === String(seasonId),
     )
 
-    const unitPrice: number = variation?.price ?? 0
+    const unitPrice: number = Math.round((variation?.price ?? 0) * 100)
     const studentCount = students.length
 
     // GST from payment settings
@@ -121,6 +122,45 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await payload.update({ collection: 'registrations', id: reg.id, data: { monerisOrderId } as any })
 
+    // Find or create parent account
+    let parentId: string | number | null = null
+    let isNewParent = false
+    let tempPassword: string | undefined
+
+    const existingParents = await payload.find({
+      collection: 'parents',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      where: { email: { equals: parentEmail } } as any,
+      limit: 1,
+    })
+    if (existingParents.docs.length > 0) {
+      parentId = existingParents.docs[0].id
+    } else {
+      tempPassword = `${parentFirstName}${Math.floor(1000 + Math.random() * 9000)}`
+      const newParent = await payload.create({
+        collection: 'parents',
+        data: {
+          email: parentEmail,
+          password: tempPassword,
+          firstName: parentFirstName,
+          lastName: parentLastName,
+          phone: parentPhone,
+        } as any,
+      })
+      parentId = newParent.id
+      isNewParent = true
+    }
+
+    if (parentId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await payload.update({ collection: 'registrations', id: reg.id, data: { parent: parentId } as any })
+    }
+
+    if (isNewParent && tempPassword) {
+      const { sendNewAccount } = await import('@/emails/sendNewAccount')
+      sendNewAccount(payload, { firstName: parentFirstName, email: parentEmail, tempPassword }).catch(console.error)
+    }
+
     return NextResponse.json({
       registrationId: reg.id,
       monerisOrderId,
@@ -129,6 +169,8 @@ export async function POST(request: NextRequest) {
       subtotal,
       gstAmount,
       totalAmount,
+      parentId: parentId ? String(parentId) : null,
+      isNewParent,
     })
   } catch (err) {
     console.error('[api/checkout]', err)

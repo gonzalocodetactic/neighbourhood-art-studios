@@ -16,6 +16,7 @@ export type RegisterPageData = {
   schools: Array<{ id: number | string; title: string; cityId: number | string }>
   seasons: Array<{ id: number | string; title: string }>
   gstSettings: GstSettings
+  termsContent: string
   variations: Array<{
     variationKey: string
     productId: number | string
@@ -26,8 +27,8 @@ export type RegisterPageData = {
     price: number
     capacity: number
     enrolled: number
-    dayOfWeek?: string
-    timeSlot?: string
+    schoolName: string
+    seasonName: string
     perStudentFields: Array<{
       label: string
       fieldName: string
@@ -45,8 +46,8 @@ type Variation = RegisterPageData['variations'][number]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatPrice(cents: number) {
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(cents / 100)
+function formatPrice(dollars: number) {
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(dollars)
 }
 
 function spotsColor(left: number, capacity: number) {
@@ -219,21 +220,6 @@ function ProgramCard({
         )}
       </div>
 
-      {(variation.dayOfWeek || variation.timeSlot) && (
-        <div className="flex flex-wrap gap-2 mt-3">
-          {variation.dayOfWeek && (
-            <span className="px-2 py-1 text-xs font-medium text-[#3B4BC8] bg-[#3B4BC8]/10 rounded-full">
-              {variation.dayOfWeek}
-            </span>
-          )}
-          {variation.timeSlot && (
-            <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full">
-              {variation.timeSlot}
-            </span>
-          )}
-        </div>
-      )}
-
       {/* Capacity bar */}
       <div className="mt-4">
         <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
@@ -308,16 +294,20 @@ const EMPTY_STUDENT: Record<string, string> = { firstName: '' }
 function RegistrationModal({
   variation,
   gstSettings,
+  termsContent,
   onClose,
   onSuccess,
 }: {
   variation: Variation
   gstSettings: GstSettings
+  termsContent: string
   onClose: () => void
   onSuccess: () => void
 }) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [termsOpen, setTermsOpen] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   // Parent fields
   const [parentFirstName, setParentFirstName] = useState('')
@@ -347,7 +337,7 @@ function RegistrationModal({
 
   // ── Reactive price / GST ──────────────────────────────────────────────────
   const subtotal    = variation.price * students.length
-  const gstAmount   = gstSettings.gstEnabled ? Math.round(subtotal * gstSettings.gstRate / 100) : 0
+  const gstAmount   = gstSettings.gstEnabled ? Math.round(subtotal * gstSettings.gstRate) / 100 : 0
   const totalAmount = subtotal + gstAmount
 
   function handleSubmit(e: React.FormEvent) {
@@ -358,8 +348,6 @@ function RegistrationModal({
       fieldLabel: f.label,
       value: answers[f.label] ?? '',
     }))
-
-    const classDate = [variation.dayOfWeek, variation.timeSlot].filter(Boolean).join(' · ')
 
     const input: RegistrationInput = {
       parentFirstName,
@@ -381,7 +369,6 @@ function RegistrationModal({
       seasonId:  variation.seasonId,
       productId: variation.productId,
       checkoutAnswers,
-      classDate: classDate || undefined,
     }
 
     startTransition(async () => {
@@ -432,9 +419,16 @@ function RegistrationModal({
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
           {/* Parent Info */}
           <section>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
-              Parent / Guardian
-            </h3>
+            <div className="flex items-baseline justify-between mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                Parent / Guardian
+              </h3>
+              <p className="text-xs text-gray-400">
+                Returning parent?{' '}
+                <a href="/account/login" className="text-[#3B4BC8] underline">Sign in</a>
+                {' '}to manage your registrations.
+              </p>
+            </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <input
@@ -454,22 +448,24 @@ function RegistrationModal({
                   className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
                 />
               </div>
-              <input
-                required
-                type="email"
-                placeholder="Email address *"
-                value={parentEmail}
-                onChange={(e) => setParentEmail(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
-              />
-              <input
-                required
-                type="tel"
-                placeholder="Phone number *"
-                value={parentPhone}
-                onChange={(e) => setParentPhone(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  required
+                  type="email"
+                  placeholder="Email address *"
+                  value={parentEmail}
+                  onChange={(e) => setParentEmail(e.target.value)}
+                  className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+                />
+                <input
+                  required
+                  type="tel"
+                  placeholder="Phone number *"
+                  value={parentPhone}
+                  onChange={(e) => setParentPhone(e.target.value)}
+                  className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8]"
+                />
+              </div>
             </div>
           </section>
 
@@ -515,9 +511,9 @@ function RegistrationModal({
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
               Student{students.length !== 1 ? 's' : ''}
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
               {students.map((student, idx) => (
-                <div key={idx} className="border border-gray-200 rounded-xl p-4 space-y-3 relative">
+                <div key={idx} className="border border-gray-200 rounded-xl p-3 space-y-2 relative">
                   {students.length > 1 && (
                     <button
                       type="button"
@@ -645,18 +641,6 @@ function RegistrationModal({
             </section>
           )}
 
-          {/* Class schedule */}
-          {(variation.dayOfWeek || variation.timeSlot) && (
-            <section className="bg-[#3B4BC8]/5 border border-[#3B4BC8]/20 rounded-xl px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#3B4BC8] mb-1">
-                Class Schedule
-              </p>
-              <p className="text-sm font-medium text-gray-800">
-                {[variation.dayOfWeek, variation.timeSlot].filter(Boolean).join(' · ')}
-              </p>
-            </section>
-          )}
-
           {/* Order Summary */}
           <section className="bg-gray-50 rounded-xl px-4 py-4">
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
@@ -665,7 +649,7 @@ function RegistrationModal({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">
-                  {variation.productTitle} × {students.length} student{students.length !== 1 ? 's' : ''}
+                  {variation.productTitle} ({variation.schoolName} – {variation.seasonName}) × {students.length} student{students.length !== 1 ? 's' : ''}
                 </span>
                 <span className="text-gray-800">{formatPrice(subtotal)}</span>
               </div>
@@ -682,6 +666,35 @@ function RegistrationModal({
             </div>
           </section>
 
+          {/* Terms & Conditions */}
+          <section>
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                required
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#3B4BC8] border-gray-300 rounded focus:ring-[#3B4BC8]"
+              />
+              <span className="text-sm text-gray-700">
+                I have read and agree to the website{' '}
+                <button
+                  type="button"
+                  onClick={() => setTermsOpen((o) => !o)}
+                  className="text-[#3B4BC8] underline hover:text-[#2D3AAA] font-medium"
+                >
+                  terms and conditions
+                </button>
+                {' '}*
+              </span>
+            </label>
+            {termsOpen && (
+              <div className="mt-2 max-h-40 overflow-y-auto bg-gray-50 border border-gray-200 p-3 rounded text-xs text-slate-700 whitespace-pre-wrap">
+                {termsContent || 'Terms and conditions have not been set yet. Please contact us if you have questions.'}
+              </div>
+            )}
+          </section>
+
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
               {error}
@@ -690,7 +703,7 @@ function RegistrationModal({
 
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || !agreedToTerms}
             className="w-full py-3 text-sm font-bold text-white bg-[#3B4BC8] rounded-xl hover:bg-[#2D3AAA] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
           >
             {isPending
@@ -700,6 +713,10 @@ function RegistrationModal({
                 : `Proceed to Payment — ${formatPrice(totalAmount)}`
             }
           </button>
+
+          <p className="text-center font-bold text-sm text-slate-800 mt-2">
+            Pay via cheque or cash via call to (604) 536-7900
+          </p>
 
           <p className="text-[11px] text-center text-gray-400">
             You'll be redirected to our secure Moneris payment page to complete checkout.
@@ -928,6 +945,7 @@ export default function RegisterClient({
   seasons,
   variations,
   gstSettings,
+  termsContent,
 }: RegisterPageData) {
   const [cityId, setCityId] = useState('')
   const [schoolId, setSchoolId] = useState('')
@@ -1130,6 +1148,7 @@ export default function RegisterClient({
         <RegistrationModal
           variation={modalVariation}
           gstSettings={gstSettings}
+          termsContent={termsContent}
           onClose={() => setModalVariation(null)}
           onSuccess={() => {
             setModalVariation(null)

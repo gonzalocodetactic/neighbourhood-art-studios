@@ -8,11 +8,13 @@ import { Cities } from './src/collections/Cities'
 import { Forms } from './src/collections/Forms'
 import { Media } from './src/collections/Media'
 import { Pages } from './src/collections/Pages'
+import { Parents } from './src/collections/Parents'
 import { Products } from './src/collections/Products'
 import { Registrations } from './src/collections/Registrations'
 import { Schools } from './src/collections/Schools'
 import { Seasons } from './src/collections/Seasons'
 import { Waitlist } from './src/collections/Waitlist'
+import { EmailSettings } from './src/globals/EmailSettings'
 import { PaymentSettings } from './src/globals/PaymentSettings'
 import { HeaderSettings } from './src/globals/HeaderSettings'
 import { FooterSettings } from './src/globals/FooterSettings'
@@ -37,11 +39,19 @@ export default buildConfig({
             description: 'Flattened class roster across all registrations.',
           },
         },
+        bulkVariationEditor: {
+          Component: '/src/components/admin/BulkVariationEditor#BulkVariationEditor',
+          path: '/bulk-variations',
+          meta: {
+            title: 'Bulk Variation Editor',
+            description: 'Apply price or capacity changes across all product variations.',
+          },
+        },
       },
     },
     meta: {
-      favicon: '/favicon.ico',
       titleSuffix: '- CodeTactic CMS',
+      icons: [{ rel: 'icon', url: '/favicon.ico' }],
     },
   },
   collections: [
@@ -59,8 +69,9 @@ export default buildConfig({
     Forms,
     Registrations,
     Waitlist,
+    Parents,
   ],
-  globals: [PaymentSettings, HeaderSettings, FooterSettings],
+  globals: [PaymentSettings, HeaderSettings, FooterSettings, EmailSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {

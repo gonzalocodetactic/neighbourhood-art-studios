@@ -58,6 +58,12 @@ export async function POST(request: NextRequest) {
   const registerUrl = `${base}/register`
 
   if (!isApproved(responseCode) || !orderNo) {
+    // Fire-and-forget admin alert for failed payment
+    try {
+      const pl = await getPayload({ config: configPromise })
+      const { sendFailedOrder } = await import('@/emails/sendFailedOrder')
+      sendFailedOrder(pl, { monerisOrderId: orderNo || '(unknown)' }).catch(console.error)
+    } catch { /* silent */ }
     return NextResponse.redirect(`${registerUrl}?payment=failed`, { status: 303 })
   }
 
@@ -77,6 +83,32 @@ export async function POST(request: NextRequest) {
         id: found.docs[0].id,
         data: { paymentStatus: 'paid' } as any,
       })
+
+      // Send order confirmation email (fire-and-forget)
+      try {
+        const fullReg = await payload.findByID({
+          collection: 'registrations',
+          id: found.docs[0].id,
+          depth: 1,
+        }) as any
+        const { sendOrderConfirmation } = await import('@/emails/sendOrderConfirmation')
+        sendOrderConfirmation(payload, {
+          id: fullReg.id,
+          parentFirstName: fullReg.parentFirstName ?? '',
+          parentLastName: fullReg.parentLastName ?? '',
+          parentEmail: fullReg.parentEmail ?? '',
+          parentPhone: fullReg.parentPhone ?? '',
+          productTitle: typeof fullReg.product === 'object' ? (fullReg.product?.title ?? '') : '',
+          schoolName: typeof fullReg.school === 'object' ? (fullReg.school?.title ?? '') : '',
+          seasonName: typeof fullReg.season === 'object' ? (fullReg.season?.title ?? '') : '',
+          students: Array.isArray(fullReg.students) ? fullReg.students : [],
+          unitPrice: fullReg.unitPrice ?? 0,
+          studentCount: fullReg.studentCount ?? 0,
+          subtotal: fullReg.subtotal ?? 0,
+          gstAmount: fullReg.gstAmount ?? 0,
+          totalAmount: fullReg.totalAmount ?? 0,
+        }).catch(console.error)
+      } catch { /* silent */ }
     }
 
     return NextResponse.redirect(`${registerUrl}?payment=success`, { status: 303 })
