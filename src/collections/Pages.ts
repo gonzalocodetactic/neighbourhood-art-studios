@@ -6,6 +6,7 @@ import { FormBlock } from '../blocks/FormBlock'
 import { HorizontalSliderBlock } from '../blocks/HorizontalSliderBlock'
 import { AccordionBlock } from '../blocks/AccordionBlock'
 import { ImageGridBlock } from '../blocks/ImageGridBlock'
+import { LightboxGalleryBlock } from '../blocks/LightboxGalleryBlock'
 
 // ── Blocks ────────────────────────────────────────────────────────────────────
 
@@ -167,6 +168,7 @@ export const Pages: CollectionConfig = {
         HorizontalSliderBlock,
         AccordionBlock,
         ImageGridBlock,
+        LightboxGalleryBlock,
       ],
     },
   ],
