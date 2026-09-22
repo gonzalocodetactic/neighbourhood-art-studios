@@ -4,6 +4,7 @@ import { HorizontalSliderBlock } from './blocks/HorizontalSliderBlock'
 import { AccordionBlock } from './blocks/AccordionBlock'
 import { ImageGridBlock } from './blocks/ImageGridBlock'
 import { LightboxGalleryBlock } from './blocks/LightboxGalleryBlock'
+import { OrderSummaryBlock } from './blocks/OrderSummaryBlock'
 import { CallToAction } from './blocks/CallToAction'
 import { FeatureGrid } from './blocks/FeatureGrid'
 import { FooterCta } from './blocks/FooterCta'
@@ -49,6 +50,8 @@ export function BlockRenderer({ block }: { block: AnyBlock }) {
       return <ImageGridBlock {...b} />
     case 'lightboxGallery':
       return <LightboxGalleryBlock {...b} />
+    case 'orderSummary':
+      return <OrderSummaryBlock {...b} />
     default:
       return null
   }

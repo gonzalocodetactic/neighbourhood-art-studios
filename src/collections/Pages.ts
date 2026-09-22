@@ -7,6 +7,7 @@ import { HorizontalSliderBlock } from '../blocks/HorizontalSliderBlock'
 import { AccordionBlock } from '../blocks/AccordionBlock'
 import { ImageGridBlock } from '../blocks/ImageGridBlock'
 import { LightboxGalleryBlock } from '../blocks/LightboxGalleryBlock'
+import { OrderSummaryBlock } from '../blocks/OrderSummaryBlock'
 
 // ── Blocks ────────────────────────────────────────────────────────────────────
 
@@ -169,6 +170,7 @@ export const Pages: CollectionConfig = {
         AccordionBlock,
         ImageGridBlock,
         LightboxGalleryBlock,
+        OrderSummaryBlock,
       ],
     },
   ],

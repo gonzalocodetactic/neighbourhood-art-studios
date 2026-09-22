@@ -23,6 +23,16 @@ const dirname = path.dirname(filename)
 export default buildConfig({
   admin: {
     user: 'users',
+    components: {
+      graphics: {
+        Logo: '/src/components/admin/Logo#Logo',
+        Icon: '/src/components/admin/Icon#Icon',
+      },
+    },
+    meta: {
+      favicon: '/favicon.ico',
+      titleSuffix: '- CodeTactic CMS',
+    },
   },
   collections: [
     {
