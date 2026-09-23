@@ -12,9 +12,7 @@ export function AnalyticsNavLink() {
       <Link
         href="/admin/analytics"
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
+          display: 'block',
           padding: '8px 12px',
           borderRadius: 6,
           fontSize: 14,
@@ -25,9 +23,6 @@ export function AnalyticsNavLink() {
           transition: 'background 0.15s',
         }}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-        </svg>
         Analytics
       </Link>
     </div>
