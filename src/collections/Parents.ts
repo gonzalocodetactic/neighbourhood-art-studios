@@ -5,7 +5,7 @@ export const Parents: CollectionConfig = {
   auth: true,
   admin: {
     useAsTitle: 'email',
-    defaultColumns: ['firstName', 'lastName', 'email', 'lastLoginAt', 'registrationCount', 'createdAt'],
+    defaultColumns: ['firstName', 'lastName', 'email', 'phone', 'accountStatus', 'lastLoginAt', 'registrationCount', 'totalSpent', 'childrenSummary'],
     components: {
       edit: {
         beforeDocumentControls: [
@@ -64,6 +64,42 @@ export const Parents: CollectionConfig = {
         { name: 'province', type: 'text', label: 'Province / State' },
         { name: 'postalCode', type: 'text', label: 'Postal Code' },
       ],
+    },
+    {
+      name: 'totalSpent',
+      type: 'number',
+      label: 'Total Spent (CAD $)',
+      defaultValue: 0,
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description: 'Sum of paid registration totals in CAD dollars. Auto-updated.',
+      },
+    },
+    {
+      name: 'childrenSummary',
+      type: 'text',
+      label: 'Children',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description: 'First names from all registrations. Auto-updated.',
+      },
+    },
+    {
+      name: 'accountStatus',
+      type: 'select',
+      label: 'Account Status',
+      defaultValue: 'active',
+      options: [
+        { label: 'Active', value: 'active' },
+        { label: 'Lapsed', value: 'lapsed' },
+      ],
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description: 'Active = has a registration within the last 6 months.',
+      },
     },
     {
       name: 'savedPaymentToken',

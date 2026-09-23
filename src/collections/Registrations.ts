@@ -15,16 +15,43 @@ export const Registrations: CollectionConfig = {
           : null
         if (!parentId) return
         try {
-          const { totalDocs } = await req.payload.count({
+          const allRegs = await req.payload.find({
             collection: 'registrations',
             where: { parent: { equals: parentId } },
+            limit: 2000,
+            depth: 0,
+            sort: '-createdAt',
           })
+
+          const registrationCount = allRegs.totalDocs
+
+          const totalSpentCents = (allRegs.docs as any[])
+            .filter((r: any) => r.paymentStatus === 'paid')
+            .reduce((sum: number, r: any) => sum + (r.totalAmount ?? 0), 0)
+          const totalSpent = Math.round(totalSpentCents) / 100
+
+          const names = new Set<string>()
+          for (const reg of allRegs.docs as any[]) {
+            if (Array.isArray(reg.students)) {
+              for (const s of reg.students as any[]) {
+                if (s.firstName) names.add(s.firstName)
+              }
+            }
+          }
+          const childrenSummary = [...names].join(', ')
+
+          const sixMonthsAgo = new Date()
+          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+          const accountStatus = (allRegs.docs as any[]).some(
+            (r: any) => new Date(r.createdAt) > sixMonthsAgo,
+          ) ? 'active' : 'lapsed'
+
           await req.payload.update({
             collection: 'parents',
             id: parentId,
-            data: { registrationCount: totalDocs } as any,
+            data: { registrationCount, totalSpent, childrenSummary, accountStatus } as any,
           })
-        } catch { /* silent — count sync is non-critical */ }
+        } catch { /* silent — derived field sync is non-critical */ }
       },
     ],
     beforeChange: [
