@@ -33,6 +33,20 @@ export default async function AccountPage() {
         email: (user as any).email ?? '',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         phone: (user as any).phone ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        billingStreet: (user as any).billingAddress?.street ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        billingCity: (user as any).billingAddress?.city ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        billingProvince: (user as any).billingAddress?.province ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        billingPostalCode: (user as any).billingAddress?.postalCode ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        savedPaymentToken: (user as any).savedPaymentToken ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        savedPaymentLast4: (user as any).savedPaymentLast4 ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        savedPaymentExpiry: (user as any).savedPaymentExpiry ?? '',
       }}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       registrations={(regsRes.docs as any[]).map((r: any) => ({
@@ -50,13 +64,24 @@ export default async function AccountPage() {
         attendanceStatus: r.attendanceStatus ?? 'enrolled',
         monerisOrderId: r.monerisOrderId ?? '',
         createdAt: r.createdAt ?? '',
+        parentFirstName: r.parentFirstName ?? '',
+        parentLastName: r.parentLastName ?? '',
+        parentEmail: r.parentEmail ?? '',
+        parentPhone: r.parentPhone ?? '',
+        ecFirstName: r.emergencyContactFirstName ?? '',
+        ecLastName: r.emergencyContactLastName ?? '',
+        ecPhone: r.emergencyContactPhone ?? '',
+        ecEmail: r.emergencyContactEmail ?? '',
         students: Array.isArray(r.students)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ? r.students.map((s: any) => ({
+              id: String(s.id ?? ''),
               firstName: s.firstName ?? '',
               lastName: s.lastName ?? '',
               age: s.age ?? '',
               grade: s.grade ?? '',
+              teacherName: s.teacherName ?? '',
+              divisionNumber: s.divisionNumber ?? '',
             }))
           : [],
       }))}

@@ -54,5 +54,34 @@ export const Parents: CollectionConfig = {
         position: 'sidebar',
       },
     },
+    {
+      name: 'billingAddress',
+      type: 'group',
+      label: 'Billing Address',
+      fields: [
+        { name: 'street', type: 'text', label: 'Street Address' },
+        { name: 'city', type: 'text', label: 'City' },
+        { name: 'province', type: 'text', label: 'Province / State' },
+        { name: 'postalCode', type: 'text', label: 'Postal Code' },
+      ],
+    },
+    {
+      name: 'savedPaymentToken',
+      type: 'text',
+      label: 'Moneris Vault Token',
+      admin: { readOnly: true, position: 'sidebar', description: 'Auto-populated by Moneris vault response.' },
+    },
+    {
+      name: 'savedPaymentLast4',
+      type: 'text',
+      label: 'Card Last 4 Digits',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+    {
+      name: 'savedPaymentExpiry',
+      type: 'text',
+      label: 'Card Expiry (MM/YY)',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
   ],
 }

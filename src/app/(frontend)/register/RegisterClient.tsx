@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { initiateMonerisCheckout, submitRegistration, submitWaitlist, type CheckoutAnswer, type RegistrationInput, type Student, type WaitlistInput } from './actions'
 
 // ── Shared types ──────────────────────────────────────────────────────────────
@@ -43,6 +44,24 @@ export type RegisterPageData = {
 }
 
 type Variation = RegisterPageData['variations'][number]
+
+export type SavedStudent = {
+  id: string
+  firstName: string
+  lastName: string
+  age: string
+  grade: string
+  teacherName: string
+  divisionNumber: string
+  parentFirstName: string
+  parentLastName: string
+  parentEmail: string
+  parentPhone: string
+  ecFirstName: string
+  ecLastName: string
+  ecPhone: string
+  ecEmail: string
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -297,12 +316,14 @@ function RegistrationModal({
   termsContent,
   onClose,
   onSuccess,
+  initialStudent,
 }: {
   variation: Variation
   gstSettings: GstSettings
   termsContent: string
   onClose: () => void
   onSuccess: () => void
+  initialStudent?: SavedStudent | null
 }) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -323,6 +344,26 @@ function RegistrationModal({
 
   // Students — keyed Record so dynamic fields work uniformly
   const [students, setStudents] = useState<Record<string, string>[]>([{ ...EMPTY_STUDENT }])
+
+  useEffect(() => {
+    if (!initialStudent) return
+    setParentFirstName(initialStudent.parentFirstName)
+    setParentLastName(initialStudent.parentLastName)
+    setParentEmail(initialStudent.parentEmail)
+    setParentPhone(initialStudent.parentPhone)
+    setEcFirstName(initialStudent.ecFirstName)
+    setEcLastName(initialStudent.ecLastName)
+    setEcPhone(initialStudent.ecPhone)
+    setEcEmail(initialStudent.ecEmail)
+    setStudents([{
+      firstName: initialStudent.firstName,
+      lastName: initialStudent.lastName,
+      age: initialStudent.age,
+      grade: initialStudent.grade,
+      teacherName: initialStudent.teacherName,
+      divisionNumber: initialStudent.divisionNumber,
+    }])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Dynamic checkout answers — keyed by field label
   const [answers, setAnswers] = useState<Record<string, string>>(() =>
@@ -955,6 +996,18 @@ export default function RegisterClient({
   const [registrationSuccess, setRegistrationSuccess] = useState(false)
   const [waitlistSuccess, setWaitlistSuccess] = useState(false)
 
+  const searchParams = useSearchParams()
+  const studentIdParam = searchParams.get('studentId')
+  const [savedStudent, setSavedStudent] = useState<SavedStudent | null>(null)
+
+  useEffect(() => {
+    if (!studentIdParam) return
+    try {
+      const raw = sessionStorage.getItem(`nas_student_${studentIdParam}`)
+      if (raw) setSavedStudent(JSON.parse(raw))
+    } catch { /* ignore */ }
+  }, [studentIdParam])
+
   const filteredSchools = schools.filter((s) => String(s.cityId) === cityId)
 
   const matchingVariations = variations.filter(
@@ -1039,6 +1092,27 @@ export default function RegisterClient({
               className="mt-4 text-sm font-semibold text-amber-700 underline hover:text-amber-900"
             >
               Back to programs
+            </button>
+          </div>
+        )}
+
+        {savedStudent && (
+          <div className="mb-6 p-4 bg-[#3B4BC8]/5 border border-[#3B4BC8]/20 rounded-xl flex items-start gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-[#3B4BC8]">
+                Re-enrolling {savedStudent.firstName} {savedStudent.lastName}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Student info will be pre-filled when you open a program below.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSavedStudent(null)}
+              className="text-gray-400 hover:text-gray-600 text-lg leading-none shrink-0"
+              aria-label="Clear"
+            >
+              ×
             </button>
           </div>
         )}
@@ -1155,6 +1229,7 @@ export default function RegisterClient({
             setRegistrationSuccess(true)
             window.scrollTo({ top: 0, behavior: 'smooth' })
           }}
+          initialStudent={savedStudent}
         />
       )}
 

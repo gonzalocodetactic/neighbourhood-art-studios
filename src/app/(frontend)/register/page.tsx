@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import RegisterClient, { type RegisterPageData } from './RegisterClient'
@@ -133,13 +134,15 @@ export default async function RegisterPage() {
   const termsContent: string = (termsRes.docs[0] as any)?.termsContent ?? ''
 
   return (
-    <RegisterClient
-      cities={cities}
-      schools={schools}
-      seasons={seasons}
-      variations={variations}
-      gstSettings={gstSettings}
-      termsContent={termsContent}
-    />
+    <Suspense fallback={null}>
+      <RegisterClient
+        cities={cities}
+        schools={schools}
+        seasons={seasons}
+        variations={variations}
+        gstSettings={gstSettings}
+        termsContent={termsContent}
+      />
+    </Suspense>
   )
 }
