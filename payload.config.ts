@@ -47,7 +47,16 @@ export default buildConfig({
             description: 'Apply price or capacity changes across all product variations.',
           },
         },
+        analytics: {
+          Component: '/src/components/admin/AnalyticsDashboard#AnalyticsDashboard',
+          path: '/analytics',
+          meta: {
+            title: 'Analytics',
+            description: 'Sales, enrollment, and tax analytics dashboard.',
+          },
+        },
       },
+      afterNavLinks: ['/src/components/admin/AnalyticsNavLink#AnalyticsNavLink'],
     },
     meta: {
       titleSuffix: '- CodeTactic CMS',
