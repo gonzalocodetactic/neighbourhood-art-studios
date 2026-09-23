@@ -1,13 +1,9 @@
 import type { AdminViewServerProps } from 'payload'
-import { DefaultTemplate } from '@payloadcms/next/templates'
-import { getVisibleEntities } from '@payloadcms/ui/shared'
 import AnalyticsDashboardClient, { type AnalyticsData } from './AnalyticsDashboardClient'
 
 export async function AnalyticsDashboard(props: AdminViewServerProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { payload, initPageResult } = props as any
-  const { req } = initPageResult
-  const visibleEntities = getVisibleEntities({ req })
+  const { payload } = props as any
 
   const now = new Date()
   const start = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -147,12 +143,9 @@ export async function AnalyticsDashboard(props: AdminViewServerProps) {
     },
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { i18n } = props as any
-
   return (
-    <DefaultTemplate i18n={i18n} payload={payload} visibleEntities={visibleEntities}>
+    <div className="analytics-page-container">
       <AnalyticsDashboardClient initialData={initialData} />
-    </DefaultTemplate>
+    </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 export type AnalyticsData = {
   range: { start: string; end: string }
@@ -240,6 +241,9 @@ export default function AnalyticsDashboardClient({ initialData }: { initialData:
       {/* Header + toolbar */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
         <div>
+          <Link href="/admin" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--theme-elevation-700)', textDecoration: 'none', marginBottom: 8 }}>
+            ← Back to Dashboard
+          </Link>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: 'var(--theme-text)' }}>Analytics</h1>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--theme-elevation-500)' }}>{rangeLabel}</p>
         </div>
