@@ -88,6 +88,76 @@ export async function initiateMonerisCheckout(
   try {
     const payload = await getPayload({ config: configPromise })
 
+    // ── Staging mock payment bypass ───────────────────────────────────────────
+    const isMockMode =
+      process.env.NEXT_PUBLIC_MONERIS_TEST_MODE === 'true' &&
+      process.env.MONERIS_STORE_ID === 'moneristest_store_id'
+
+    if (isMockMode) {
+      const orderNo = `NAS-MOCK-${registrationId}-${Date.now()}`
+
+      // Mark registration as paid
+      await payload.update({
+        collection: 'registrations',
+        id: registrationId,
+        data: { paymentStatus: 'paid', monerisOrderId: orderNo } as any,
+      })
+
+      // Fetch full registration for email and parent linking
+      const fullReg = await payload.findByID({ collection: 'registrations', id: registrationId, depth: 1 }) as any
+
+      // Find or create parent account
+      let parentId: string | number | null = null
+      let isNewParent = false
+      let tempPassword: string | undefined
+      const existingParents = await payload.find({
+        collection: 'parents',
+        where: { email: { equals: fullReg.parentEmail } } as any,
+        limit: 1,
+      })
+      if (existingParents.docs.length > 0) {
+        parentId = existingParents.docs[0].id
+      } else {
+        tempPassword = `${fullReg.parentFirstName}${Math.floor(1000 + Math.random() * 9000)}`
+        const newParent = await payload.create({
+          collection: 'parents',
+          data: { email: fullReg.parentEmail, password: tempPassword, firstName: fullReg.parentFirstName, lastName: fullReg.parentLastName, phone: fullReg.parentPhone } as any,
+        })
+        parentId = newParent.id
+        isNewParent = true
+      }
+      if (parentId) {
+        await payload.update({ collection: 'registrations', id: registrationId, data: { parent: parentId } as any })
+      }
+
+      // Fire-and-forget emails
+      const { sendOrderConfirmation } = await import('@/emails/sendOrderConfirmation')
+      sendOrderConfirmation(payload, {
+        id: fullReg.id,
+        parentFirstName: fullReg.parentFirstName ?? '',
+        parentLastName: fullReg.parentLastName ?? '',
+        parentEmail: fullReg.parentEmail ?? '',
+        parentPhone: fullReg.parentPhone ?? '',
+        productTitle: typeof fullReg.product === 'object' ? (fullReg.product?.title ?? '') : '',
+        schoolName: typeof fullReg.school === 'object' ? (fullReg.school?.title ?? '') : '',
+        seasonName: typeof fullReg.season === 'object' ? (fullReg.season?.title ?? '') : '',
+        students: Array.isArray(fullReg.students) ? fullReg.students : [],
+        unitPrice: fullReg.unitPrice ?? 0,
+        studentCount: fullReg.studentCount ?? 0,
+        subtotal: fullReg.subtotal ?? 0,
+        gstAmount: fullReg.gstAmount ?? 0,
+        totalAmount: fullReg.totalAmount ?? 0,
+      }).catch(console.error)
+      if (isNewParent && tempPassword) {
+        const { sendNewAccount } = await import('@/emails/sendNewAccount')
+        sendNewAccount(payload, { firstName: fullReg.parentFirstName, email: fullReg.parentEmail, tempPassword }).catch(console.error)
+      }
+
+      const base = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
+      return { checkoutUrl: `${base}/register?payment=success&orderId=${orderNo}` }
+    }
+    // ── End mock bypass ───────────────────────────────────────────────────────
+
     // Fetch registration with populated product/school/season (depth 2)
     const reg = await payload.findByID({
       collection: 'registrations',

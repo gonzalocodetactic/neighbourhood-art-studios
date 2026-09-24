@@ -401,8 +401,9 @@ function RegistrationModal({
       emergencyContactEmail:     ecEmail     || undefined,
       students: students.map((s) => ({
         firstName: s.firstName,
+        ...(s.lastName       ? { lastName: s.lastName }             : {}),
         ...(s.age            ? { age: s.age }                       : {}),
-        ...(s.gender         ? { gender: s.gender }                 : {}),
+        ...(s.gender && s.gender !== '' ? { gender: s.gender }      : {}),
         ...(s.teacherName    ? { teacherName: s.teacherName }       : {}),
         ...(s.divisionNumber ? { divisionNumber: s.divisionNumber } : {}),
       })),
@@ -436,7 +437,7 @@ function RegistrationModal({
       {/* Panel */}
       <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl mx-4">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 z-[20] bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
             <h2
               className="text-lg font-bold text-gray-900"
@@ -1007,6 +1008,11 @@ export default function RegisterClient({
       if (raw) setSavedStudent(JSON.parse(raw))
     } catch { /* ignore */ }
   }, [studentIdParam])
+
+  // Show success banner when mock payment bypass redirects back with ?payment=success
+  useEffect(() => {
+    if (searchParams.get('payment') === 'success') setRegistrationSuccess(true)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredSchools = schools.filter((s) => String(s.cityId) === cityId)
 
