@@ -289,7 +289,7 @@ const DEFAULT_STUDENT_FIELDS: NonNullable<RegisterPageData['variations'][number]
     label: 'Gender',
     fieldName: 'gender',
     fieldType: 'select',
-    required: true,
+    required: false,
     width: '50%',
     selectOptions: [
       { label: 'Male', value: 'Male' },
@@ -307,7 +307,7 @@ function colSpanClass(width?: string) {
   return 'col-span-12'
 }
 
-const EMPTY_STUDENT: Record<string, string> = { firstName: '' }
+const EMPTY_STUDENT: Record<string, string> = { firstName: '', gender: 'Rather Not Say' }
 
 function RegistrationModal({
   variation,
@@ -403,7 +403,7 @@ function RegistrationModal({
         ...(s.lastName                  ? { lastName: s.lastName }             : {}),
         ...(s.age                       ? { age: s.age }                       : {}),
         ...(s.grade                     ? { grade: s.grade }                   : {}),
-        ...(s.gender && s.gender !== '' ? { gender: s.gender }                 : {}),
+        gender: (s.gender && s.gender !== '') ? s.gender : 'Rather Not Say',
         ...(s.teacherName               ? { teacherName: s.teacherName }       : {}),
         ...(s.divisionNumber            ? { divisionNumber: s.divisionNumber } : {}),
       })),

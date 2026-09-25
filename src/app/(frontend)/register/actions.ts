@@ -273,7 +273,7 @@ export async function submitRegistration(
           ...(s.lastName                      ? { lastName: s.lastName }             : {}),
           ...(s.age                           ? { age: s.age }                       : {}),
           ...(s.grade                         ? { grade: s.grade }                   : {}),
-          ...(s.gender && s.gender !== ''     ? { gender: s.gender }                 : {}),
+          gender: (s.gender && s.gender !== '') ? s.gender : 'Rather Not Say',
           ...(s.teacherName                   ? { teacherName: s.teacherName }       : {}),
           ...(s.divisionNumber                ? { divisionNumber: s.divisionNumber } : {}),
         })),
