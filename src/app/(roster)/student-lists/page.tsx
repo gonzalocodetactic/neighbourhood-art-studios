@@ -75,9 +75,11 @@ export default async function StudentListsPage() {
     const scheduleDate =
       scheduleMap.get(productId)?.get(`${schoolId}-${seasonId}`) ?? ''
 
-    for (const student of (reg.students ?? []) as Record<string, unknown>[]) {
+    // One row per student; studentIndex (1, 2, 3…) keeps siblings grouped under the same regId
+    ;((reg.students ?? []) as Record<string, unknown>[]).forEach((student, idx) => {
       rows.push({
         regId:           String(reg.id),
+        studentIndex:    String(idx + 1),
         parentFirstName: parentFirst,
         parentLastName:  parentLast,
         phone:           reg.parentPhone ?? '',
@@ -95,7 +97,7 @@ export default async function StudentListsPage() {
         teacherName:      r0.teacherName    ?? '',
         scheduleDate,
       })
-    }
+    })
   }
 
   return <RosterClient rows={rows} />

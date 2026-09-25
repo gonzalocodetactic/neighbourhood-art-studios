@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useRef, useState, useTransition } from 'react'
 import { logoutFromRoster } from './actions'
 
 export type RosterRow = {
   regId: string
+  studentIndex: string
   parentFirstName: string
   parentLastName: string
   phone: string
@@ -37,6 +38,7 @@ type Tab = (typeof TABS)[number]
 
 const COLUMNS: { key: keyof RosterRow; label: string; minW?: string }[] = [
   { key: 'regId',            label: 'ID',             minW: 'min-w-[60px]' },
+  { key: 'studentIndex',     label: 'Stu #',          minW: 'min-w-[60px]' },
   { key: 'parentFirstName',  label: 'P/G FN #1',      minW: 'min-w-[100px]' },
   { key: 'parentLastName',   label: 'P/G LN #1',      minW: 'min-w-[100px]' },
   { key: 'phone',            label: 'Phone',           minW: 'min-w-[120px]' },
@@ -72,6 +74,30 @@ function applySearch(rows: RosterRow[], query: string): RosterRow[] {
   )
 }
 
+type SortDirection = 'asc' | 'desc'
+
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+
+// Stable ordering: chosen column first, then registration ID and student index so
+// siblings on one registration always stay in consecutive rows.
+function sortRows(rows: RosterRow[], column: keyof RosterRow, direction: SortDirection): RosterRow[] {
+  const dir = direction === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    const primary = column === 'studentIndex' ? 0 : collator.compare(a[column], b[column]) * dir
+    if (primary !== 0) return primary
+    const byReg = collator.compare(a.regId, b.regId) * (column === 'regId' ? dir : 1)
+    if (byReg !== 0) return byReg
+    return collator.compare(a.studentIndex, b.studentIndex) * (column === 'studentIndex' ? dir : 1)
+  })
+}
+
+function toTSV(rows: RosterRow[]): string {
+  const clean = (v: string) => v.replace(/[\t\r\n]+/g, ' ')
+  const header = COLUMNS.map((c) => c.label).join('\t')
+  const lines = rows.map((row) => COLUMNS.map((c) => clean(row[c.key])).join('\t'))
+  return [header, ...lines].join('\n')
+}
+
 function toCSV(rows: RosterRow[], tabName: string): string {
   const header = COLUMNS.map((c) => c.label).join(',')
   const lines = rows.map((row) =>
@@ -91,13 +117,40 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
   const [pageSize, setPageSize] = useState(100)
   const [isPending, startTransition] = useTransition()
 
-  const tabRows = filterByTab(rows, activeTab)
-  const filtered = applySearch(tabRows, search)
+  const tabRows = useMemo(() => filterByTab(rows, activeTab), [rows, activeTab])
+  const [sortColumn, setSortColumn] = useState<keyof RosterRow>('regId')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [copied, setCopied] = useState(false)
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const filtered = useMemo(
+    () => sortRows(applySearch(tabRows, search), sortColumn, sortDirection),
+    [tabRows, search, sortColumn, sortDirection],
+  )
   const displayed = filtered.slice(0, pageSize)
 
   function switchTab(tab: Tab) {
     setActiveTab(tab)
     setSearch('')
+  }
+
+  function handleSort(key: keyof RosterRow) {
+    if (key === sortColumn) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortColumn(key)
+      setSortDirection('asc')
+    }
+  }
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(toTSV(filtered))
+      setCopied(true)
+      if (copyTimer.current) clearTimeout(copyTimer.current)
+      copyTimer.current = setTimeout(() => setCopied(false), 2000)
+    } catch {
+      window.alert('Could not copy to clipboard.')
+    }
   }
 
   function handleExport() {
@@ -136,6 +189,26 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          <div className="relative">
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-[#3B4BC8] bg-white border border-[#3B4BC8] rounded-lg hover:bg-[#3B4BC8]/5 active:scale-[0.98] transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy CSV
+            </button>
+            {copied && (
+              <span
+                role="status"
+                className="absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2.5 py-1 text-xs font-medium text-white shadow-lg"
+              >
+                Copied to clipboard!
+              </span>
+            )}
+          </div>
           <button
             onClick={handleExport}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#3B4BC8] rounded-lg hover:bg-[#2D3AAA] active:scale-[0.98] transition-all"
@@ -235,9 +308,14 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
                   {COLUMNS.map((c) => (
                     <th
                       key={c.key}
-                      className={`px-3 py-2.5 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap ${c.minW ?? ''}`}
+                      aria-sort={sortColumn === c.key ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                      onClick={() => handleSort(c.key)}
+                      className={`px-3 py-2.5 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide whitespace-nowrap cursor-pointer select-none hover:bg-gray-100 ${c.minW ?? ''}`}
                     >
                       {c.label}
+                      {sortColumn === c.key && (
+                        <span className="ml-1 text-[#3B4BC8]">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                      )}
                     </th>
                   ))}
                 </tr>
