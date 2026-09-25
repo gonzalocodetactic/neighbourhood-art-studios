@@ -82,23 +82,24 @@ export function buildOrderConfirmationHtml(opts: {
 
 export function buildAdminNotificationHtml(opts: {
   title: string
-  rows: Array<{ label: string; value: string }>
+  rows: Array<{ label: string; value: string; section?: true }>
 }): string {
   const tableRows = opts.rows
-    .map(
-      (r) => `<tr>
-        <td style="padding:8px 16px;font-size:14px;font-weight:600;color:#374151;border-top:1px solid #e5e7eb;width:40%;">${r.label}</td>
-        <td style="padding:8px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;">${r.value}</td>
-      </tr>`,
+    .map((r) =>
+      r.section
+        ? `<tr style="background:#f0f3ff;">
+            <td colspan="2" style="padding:8px 16px;font-size:12px;font-weight:700;color:#3B4BC8;border-top:2px solid #e5e7eb;text-transform:uppercase;letter-spacing:0.06em;">${r.label}</td>
+           </tr>`
+        : `<tr>
+            <td style="padding:7px 16px;font-size:13px;font-weight:600;color:#374151;border-top:1px solid #f3f4f6;width:38%;">${r.label}</td>
+            <td style="padding:7px 16px;font-size:13px;color:#374151;border-top:1px solid #f3f4f6;">${r.value}</td>
+           </tr>`,
     )
     .join('')
 
   const content = `
     <h1 style="margin:0 0 24px;font-size:22px;font-weight:700;color:#3B4BC8;">${opts.title}</h1>
     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
-      <tr style="background:#f9fafb;">
-        <td colspan="2" style="padding:12px 16px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Details</td>
-      </tr>
       ${tableRows}
     </table>
   `

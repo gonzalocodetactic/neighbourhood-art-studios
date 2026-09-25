@@ -4,7 +4,7 @@ export const Registrations: CollectionConfig = {
   slug: 'registrations',
   admin: {
     useAsTitle: 'parentFirstName',
-    defaultColumns: ['parentFirstName', 'parentLastName', 'parentEmail', 'product', 'studentCount', 'totalAmount', 'paymentStatus', 'attendanceStatus', 'createdAt'],
+    defaultColumns: ['id', 'monerisOrderId', 'parentFirstName', 'parentLastName', 'parentEmail', 'product', 'studentCount', 'totalAmount', 'paymentStatus', 'attendanceStatus', 'createdAt'],
   },
   hooks: {
     afterChange: [
@@ -296,6 +296,9 @@ export const Registrations: CollectionConfig = {
           admin: {
             description: 'Auto-calculated: subtotal + gstAmount.',
             readOnly: true,
+            components: {
+              Cell: '@/components/admin/TotalAmountCell',
+            },
           },
         },
       ],

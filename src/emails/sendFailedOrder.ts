@@ -32,8 +32,10 @@ export async function sendFailedOrder(
 
   await transporter.sendMail({
     from,
+    replyTo: from,
     to: adminRecipients,
     subject: settings?.failedAdminSubject ?? 'FAILED order – Neighbourhood Art Studios',
     html,
+    text: `FAILED / Declined Order\n\nMoneris Order ID: ${opts.monerisOrderId}\nRegistration ID: ${opts.registrationId ?? '—'}\nParent Email: ${opts.parentEmail ?? '—'}\nParent Name: ${opts.parentName ?? '—'}`,
   })
 }

@@ -73,14 +73,18 @@ async function run() {
 
     await fillByLabel('Age', '9')
 
-    // Gender select — must be 'Male' (exact schema value)
+    // Gender select — verify initially empty (no preselected default), then select Male
     const genderSelect = page.locator('label', { hasText: 'Gender' }).first().locator('..').locator('select')
+    const initialGender = await genderSelect.inputValue()
+    if (initialGender !== '') {
+      throw new Error(`Gender should start empty (no preselect), got "${initialGender}"`)
+    }
     await genderSelect.selectOption('Male')
     const selectedGender = await genderSelect.inputValue()
     if (selectedGender !== 'Male') {
       throw new Error(`Gender binding failed — expected "Male", got "${selectedGender}"`)
     }
-    console.log(`✓ Gender set to: ${selectedGender}`)
+    console.log(`✓ Gender: starts empty, set to "${selectedGender}"`)
 
     await fillByLabel('Teacher Name', 'Ms. Smith')
     await fillByLabel('Division', '4')
@@ -108,8 +112,12 @@ async function run() {
         break
       }
 
-      // Check for success banner
-      if (await page.locator('text=Registration Submitted').count() > 0) {
+      // Check for success card (new) or legacy success banner
+      if (
+        await page.locator('text=Registration Confirmed').count() > 0 ||
+        await page.locator('text=Registration Submitted').count() > 0 ||
+        await page.locator('text=Your registration has been submitted').count() > 0
+      ) {
         outcome = 'success-banner'
         break
       }

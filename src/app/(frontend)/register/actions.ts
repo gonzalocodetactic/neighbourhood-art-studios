@@ -26,6 +26,37 @@ export type Student = {
   divisionNumber?: string
 }
 
+export type RegistrationDetails = {
+  id: number | string
+  monerisOrderId: string
+  parentFirstName: string
+  parentLastName: string
+  parentEmail: string
+  parentPhone: string
+  emergencyContactFirstName?: string
+  emergencyContactLastName?: string
+  emergencyContactPhone?: string
+  emergencyContactEmail?: string
+  students: Array<{
+    firstName: string
+    lastName?: string
+    age?: string
+    grade?: string
+    gender?: string
+    medicalNotes?: string
+    teacherName?: string
+    divisionNumber?: string
+  }>
+  productTitle: string
+  schoolName: string
+  seasonName: string
+  unitPrice: number
+  studentCount: number
+  subtotal: number
+  gstAmount: number
+  totalAmount: number
+}
+
 export type CheckoutAnswer = {
   fieldLabel: string
   value: string
@@ -80,6 +111,60 @@ export async function submitWaitlist(
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return { success: false, error: message }
+  }
+}
+
+export async function getRegistrationByOrderId(
+  orderId: string,
+): Promise<{ success: true; data: RegistrationDetails } | { success: false }> {
+  try {
+    const payload = await getPayload({ config: configPromise })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await payload.find({
+      collection: 'registrations',
+      where: { monerisOrderId: { equals: orderId } } as any,
+      limit: 1,
+      depth: 2,
+    })
+    if (result.docs.length === 0) return { success: false }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reg = result.docs[0] as any
+    return {
+      success: true,
+      data: {
+        id: reg.id,
+        monerisOrderId: reg.monerisOrderId ?? orderId,
+        parentFirstName: reg.parentFirstName ?? '',
+        parentLastName: reg.parentLastName ?? '',
+        parentEmail: reg.parentEmail ?? '',
+        parentPhone: reg.parentPhone ?? '',
+        emergencyContactFirstName: reg.emergencyContactFirstName || undefined,
+        emergencyContactLastName: reg.emergencyContactLastName || undefined,
+        emergencyContactPhone: reg.emergencyContactPhone || undefined,
+        emergencyContactEmail: reg.emergencyContactEmail || undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        students: (reg.students ?? []).map((s: any) => ({
+          firstName: s.firstName ?? '',
+          lastName: s.lastName || undefined,
+          age: s.age || undefined,
+          grade: s.grade || undefined,
+          gender: s.gender || undefined,
+          medicalNotes: s.medicalNotes || undefined,
+          teacherName: s.teacherName || undefined,
+          divisionNumber: s.divisionNumber || undefined,
+        })),
+        productTitle: typeof reg.product === 'object' ? (reg.product?.title ?? '') : '',
+        schoolName: typeof reg.school === 'object' ? (reg.school?.title ?? '') : '',
+        seasonName: typeof reg.season === 'object' ? (reg.season?.title ?? '') : '',
+        unitPrice: reg.unitPrice ?? 0,
+        studentCount: reg.studentCount ?? 0,
+        subtotal: reg.subtotal ?? 0,
+        gstAmount: reg.gstAmount ?? 0,
+        totalAmount: reg.totalAmount ?? 0,
+      },
+    }
+  } catch {
+    return { success: false }
   }
 }
 
@@ -139,6 +224,10 @@ export async function initiateMonerisCheckout(
         parentLastName: fullReg.parentLastName ?? '',
         parentEmail: fullReg.parentEmail ?? '',
         parentPhone: fullReg.parentPhone ?? '',
+        emergencyContactFirstName: fullReg.emergencyContactFirstName || undefined,
+        emergencyContactLastName: fullReg.emergencyContactLastName || undefined,
+        emergencyContactPhone: fullReg.emergencyContactPhone || undefined,
+        emergencyContactEmail: fullReg.emergencyContactEmail || undefined,
         productTitle: typeof fullReg.product === 'object' ? (fullReg.product?.title ?? '') : '',
         schoolName: typeof fullReg.school === 'object' ? (fullReg.school?.title ?? '') : '',
         seasonName: typeof fullReg.season === 'object' ? (fullReg.season?.title ?? '') : '',

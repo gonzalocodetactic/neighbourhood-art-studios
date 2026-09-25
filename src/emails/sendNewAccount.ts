@@ -24,8 +24,10 @@ export async function sendNewAccount(
 
   await transporter.sendMail({
     from,
+    replyTo: from,
     to: opts.email,
     subject: settings?.welcomeSubject ?? 'Your account – Neighbourhood Art Studios',
     html,
+    text: `Welcome, ${opts.firstName}!\n\n${settings?.welcomeIntro ?? 'An account has been created for you.'}\n\nEmail: ${opts.email}\nTemp Password: ${opts.tempPassword}\n\nLogin at: ${base}/account/login\n\nPlease change your password after your first sign-in.`,
   })
 }

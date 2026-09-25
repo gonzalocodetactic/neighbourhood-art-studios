@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { initiateMonerisCheckout, submitRegistration, submitWaitlist, type CheckoutAnswer, type RegistrationInput, type Student, type WaitlistInput } from './actions'
+import { getRegistrationByOrderId, initiateMonerisCheckout, submitRegistration, submitWaitlist, type CheckoutAnswer, type RegistrationDetails, type RegistrationInput, type Student, type WaitlistInput } from './actions'
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -307,7 +307,7 @@ function colSpanClass(width?: string) {
   return 'col-span-12'
 }
 
-const EMPTY_STUDENT: Record<string, string> = { firstName: '', gender: 'Rather Not Say' }
+const EMPTY_STUDENT: Record<string, string> = { firstName: '', gender: '' }
 
 function RegistrationModal({
   variation,
@@ -996,6 +996,8 @@ export default function RegisterClient({
   const [waitlistVariation, setWaitlistVariation] = useState<Variation | null>(null)
   const [registrationSuccess, setRegistrationSuccess] = useState(false)
   const [waitlistSuccess, setWaitlistSuccess] = useState(false)
+  const [registrationDetails, setRegistrationDetails] = useState<RegistrationDetails | null>(null)
+  const [registrationDetailsLoading, setRegistrationDetailsLoading] = useState(false)
 
   const searchParams = useSearchParams()
   const studentIdParam = searchParams.get('studentId')
@@ -1009,9 +1011,19 @@ export default function RegisterClient({
     } catch { /* ignore */ }
   }, [studentIdParam])
 
-  // Show success banner when mock payment bypass redirects back with ?payment=success
+  // Detect payment=success and fetch order details
   useEffect(() => {
-    if (searchParams.get('payment') === 'success') setRegistrationSuccess(true)
+    const orderId = searchParams.get('orderId')
+    if (searchParams.get('payment') === 'success') {
+      setRegistrationSuccess(true)
+      if (orderId) {
+        setRegistrationDetailsLoading(true)
+        getRegistrationByOrderId(orderId).then((result) => {
+          if (result.success) setRegistrationDetails(result.data)
+          setRegistrationDetailsLoading(false)
+        })
+      }
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredSchools = schools.filter((s) => String(s.cityId) === cityId)
@@ -1036,6 +1048,155 @@ export default function RegisterClient({
     setSeasonId(fall2026 ? String(fall2026.id) : '')
   }
 
+  // ── Registration success full-page card ──────────────────────────────────────
+  if (registrationSuccess) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-[#3B4BC8] px-8 py-10">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-2">
+            Neighbourhood Art Studios
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold text-white" style={{ fontFamily: 'Georgia, serif' }}>
+              Registration Confirmed!
+            </h1>
+          </div>
+          {registrationDetailsLoading && (
+            <p className="mt-3 text-sm text-white/60">Loading your order details…</p>
+          )}
+          {registrationDetails && !registrationDetailsLoading && (
+            <p className="mt-3 text-sm text-white/70 font-mono">
+              Order ID: {registrationDetails.monerisOrderId}
+            </p>
+          )}
+        </div>
+
+        <div className="max-w-2xl mx-auto px-6 py-8 space-y-4">
+          {registrationDetailsLoading ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
+              <p className="text-sm text-gray-400">Loading order details…</p>
+            </div>
+          ) : registrationDetails ? (
+            <>
+              {/* Parent */}
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">Parent / Guardian</h2>
+                </div>
+                <div className="px-5 py-4 space-y-0.5">
+                  <p className="text-base font-semibold text-gray-900">
+                    {registrationDetails.parentFirstName} {registrationDetails.parentLastName}
+                  </p>
+                  <p className="text-sm text-gray-600">{registrationDetails.parentEmail}</p>
+                  <p className="text-sm text-gray-600">{registrationDetails.parentPhone}</p>
+                </div>
+              </div>
+
+              {/* Emergency Contact */}
+              {(registrationDetails.emergencyContactFirstName || registrationDetails.emergencyContactPhone) && (
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">Emergency Contact</h2>
+                  </div>
+                  <div className="px-5 py-4 space-y-0.5">
+                    {(registrationDetails.emergencyContactFirstName || registrationDetails.emergencyContactLastName) && (
+                      <p className="text-base font-semibold text-gray-900">
+                        {[registrationDetails.emergencyContactFirstName, registrationDetails.emergencyContactLastName].filter(Boolean).join(' ')}
+                      </p>
+                    )}
+                    {registrationDetails.emergencyContactPhone && (
+                      <p className="text-sm text-gray-600">{registrationDetails.emergencyContactPhone}</p>
+                    )}
+                    {registrationDetails.emergencyContactEmail && (
+                      <p className="text-sm text-gray-600">{registrationDetails.emergencyContactEmail}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Students */}
+              {registrationDetails.students.map((student, idx) => (
+                <div key={idx} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                      Student {idx + 1}
+                    </h2>
+                  </div>
+                  <div className="px-5 py-4">
+                    <p className="text-base font-semibold text-gray-900 mb-2">
+                      {student.firstName}{student.lastName ? ` ${student.lastName}` : ''}
+                    </p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      {student.age && <span className="text-sm text-gray-600"><span className="font-medium text-gray-700">Age:</span> {student.age}</span>}
+                      {student.grade && <span className="text-sm text-gray-600"><span className="font-medium text-gray-700">Grade:</span> {student.grade}</span>}
+                      {student.gender && <span className="text-sm text-gray-600"><span className="font-medium text-gray-700">Gender:</span> {student.gender}</span>}
+                      {student.teacherName && <span className="text-sm text-gray-600"><span className="font-medium text-gray-700">Teacher:</span> {student.teacherName}</span>}
+                      {student.divisionNumber && <span className="text-sm text-gray-600"><span className="font-medium text-gray-700">Division:</span> {student.divisionNumber}</span>}
+                    </div>
+                    {student.medicalNotes && (
+                      <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        <span className="font-semibold">Notes:</span> {student.medicalNotes}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Order summary */}
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="px-5 py-3 bg-gray-50 border-b border-gray-200">
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-gray-500">Order Summary</h2>
+                </div>
+                <div className="px-5 py-4">
+                  <p className="text-sm font-semibold text-gray-800 mb-3">
+                    {registrationDetails.productTitle} · {registrationDetails.schoolName} · {registrationDetails.seasonName}
+                  </p>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">
+                        {registrationDetails.studentCount} student{registrationDetails.studentCount !== 1 ? 's' : ''} × {formatPrice(registrationDetails.unitPrice / 100)}
+                      </span>
+                      <span className="text-gray-800">{formatPrice(registrationDetails.subtotal / 100)}</span>
+                    </div>
+                    {registrationDetails.gstAmount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">GST (5%)</span>
+                        <span className="text-gray-800">{formatPrice(registrationDetails.gstAmount / 100)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm font-bold text-gray-900 border-t border-gray-200 pt-2 mt-1">
+                      <span>Total Paid</span>
+                      <span className="text-[#3B4BC8]">{formatPrice(registrationDetails.totalAmount / 100)} CAD</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+              <p className="text-base font-semibold text-gray-900 mb-1">Your registration has been submitted!</p>
+              <p className="text-sm text-gray-600">We&apos;ll be in touch shortly to confirm your spot.</p>
+            </div>
+          )}
+
+          {/* CTA */}
+          <a
+            href="/account"
+            className="block w-full py-3 text-center text-sm font-bold text-white bg-[#3B4BC8] rounded-xl hover:bg-[#2D3AAA] active:scale-[0.98] transition-all"
+          >
+            Go to my registrations →
+          </a>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Page header */}
@@ -1057,28 +1218,6 @@ export default function RegisterClient({
       <div className="max-w-2xl mx-auto px-8 py-12">
         {/* Step tracker */}
         <StepIndicator active={step} />
-
-        {/* Registration success banner */}
-        {registrationSuccess && (
-          <div className="mb-8 p-5 bg-green-50 border border-green-200 rounded-xl text-center">
-            <p className="text-2xl mb-2">🎉</p>
-            <p className="text-base font-bold text-green-800">Registration Submitted!</p>
-            <p className="text-sm text-green-700 mt-1">
-              We'll be in touch shortly to confirm your spot and arrange payment.
-            </p>
-            <button
-              onClick={() => {
-                setRegistrationSuccess(false)
-                setCityId('')
-                setSchoolId('')
-                setSeasonId('')
-              }}
-              className="mt-4 text-sm font-semibold text-green-700 underline hover:text-green-900"
-            >
-              Register another student
-            </button>
-          </div>
-        )}
 
         {/* Waitlist success banner */}
         {waitlistSuccess && (

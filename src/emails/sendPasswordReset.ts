@@ -22,8 +22,10 @@ export async function sendPasswordReset(
 
   await transporter.sendMail({
     from,
+    replyTo: from,
     to: opts.email,
     subject: settings?.resetSubject ?? 'Reset your password – Neighbourhood Art Studios',
     html,
+    text: `${settings?.resetIntro ?? 'Click the link below to reset your password.'}\n\n${resetUrl}\n\nIf you did not request a password reset, you can safely ignore this email.`,
   })
 }
