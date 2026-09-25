@@ -292,10 +292,9 @@ const DEFAULT_STUDENT_FIELDS: NonNullable<RegisterPageData['variations'][number]
     required: true,
     width: '50%',
     selectOptions: [
-      { label: 'Boy', value: 'boy' },
-      { label: 'Girl', value: 'girl' },
-      { label: 'Non-binary', value: 'non-binary' },
-      { label: 'Prefer not to say', value: 'prefer-not-to-say' },
+      { label: 'Male', value: 'Male' },
+      { label: 'Female', value: 'Female' },
+      { label: 'Rather Not Say', value: 'Rather Not Say' },
     ],
   },
   { label: 'Teacher Name', fieldName: 'teacherName', fieldType: 'text', required: false, placeholder: 'e.g. Ms. Johnson', width: '50%' },

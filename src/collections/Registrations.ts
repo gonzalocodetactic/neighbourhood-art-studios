@@ -165,10 +165,9 @@ export const Registrations: CollectionConfig = {
           label: 'Gender',
           required: true,
           options: [
-            { label: 'Boy', value: 'boy' },
-            { label: 'Girl', value: 'girl' },
-            { label: 'Non-binary', value: 'non-binary' },
-            { label: 'Prefer not to say', value: 'prefer-not-to-say' },
+            { label: 'Male', value: 'Male' },
+            { label: 'Female', value: 'Female' },
+            { label: 'Rather Not Say', value: 'Rather Not Say' },
           ],
         },
         {
