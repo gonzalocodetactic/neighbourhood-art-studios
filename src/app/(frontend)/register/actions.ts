@@ -20,6 +20,7 @@ export type Student = {
   firstName: string
   lastName?: string
   age?: string
+  grade?: string
   gender?: string
   teacherName?: string
   divisionNumber?: string
@@ -269,11 +270,12 @@ export async function submitRegistration(
         emergencyContactEmail: data.emergencyContactEmail,
         students: data.students.map((s) => ({
           firstName: s.firstName,
-          ...(s.lastName       ? { lastName: s.lastName }             : {}),
-          ...(s.age            ? { age: s.age }                       : {}),
-          ...(s.gender         ? { gender: s.gender }                 : {}),
-          ...(s.teacherName    ? { teacherName: s.teacherName }       : {}),
-          ...(s.divisionNumber ? { divisionNumber: s.divisionNumber } : {}),
+          ...(s.lastName                      ? { lastName: s.lastName }             : {}),
+          ...(s.age                           ? { age: s.age }                       : {}),
+          ...(s.grade                         ? { grade: s.grade }                   : {}),
+          ...(s.gender && s.gender !== ''     ? { gender: s.gender }                 : {}),
+          ...(s.teacherName                   ? { teacherName: s.teacherName }       : {}),
+          ...(s.divisionNumber                ? { divisionNumber: s.divisionNumber } : {}),
         })),
         school: data.schoolId,
         season: data.seasonId,
