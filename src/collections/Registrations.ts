@@ -4,7 +4,7 @@ export const Registrations: CollectionConfig = {
   slug: 'registrations',
   admin: {
     useAsTitle: 'parentFirstName',
-    defaultColumns: ['id', 'monerisOrderId', 'parentFirstName', 'parentLastName', 'parentEmail', 'product', 'studentCount', 'totalAmount', 'paymentStatus', 'attendanceStatus', 'createdAt'],
+    defaultColumns: ['id', 'parentFirstName', 'parentLastName', 'parentEmail', 'product', 'studentCount', 'totalAmount', 'paymentStatus', 'attendanceStatus', 'createdAt', 'monerisOrderId'],
   },
   hooks: {
     afterChange: [

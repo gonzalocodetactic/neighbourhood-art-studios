@@ -56,7 +56,10 @@ export default buildConfig({
           },
         },
       },
-      afterNavLinks: ['/src/components/admin/AnalyticsNavLink#AnalyticsNavLink'],
+      afterNavLinks: [
+        '/src/components/admin/AnalyticsNavLink#AnalyticsNavLink',
+        '/src/components/admin/StudentListsNavLink#StudentListsNavLink',
+      ],
     },
     meta: {
       titleSuffix: '- CodeTactic CMS',
