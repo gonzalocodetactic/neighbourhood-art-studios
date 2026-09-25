@@ -35,14 +35,6 @@ export default buildConfig({
         Icon: '/src/components/admin/Icon#Icon',
       },
       views: {
-        studentRoster: {
-          Component: '/src/components/admin/StudentRoster#StudentRoster',
-          path: '/student-roster',
-          meta: {
-            title: 'Student Roster',
-            description: 'Flattened class roster across all registrations.',
-          },
-        },
         bulkVariationEditor: {
           Component: '/src/components/admin/BulkVariationEditor#BulkVariationEditor',
           path: '/bulk-variations',
