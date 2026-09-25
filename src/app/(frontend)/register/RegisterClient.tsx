@@ -289,7 +289,7 @@ const DEFAULT_STUDENT_FIELDS: NonNullable<RegisterPageData['variations'][number]
     label: 'Gender',
     fieldName: 'gender',
     fieldType: 'select',
-    required: false,
+    required: true,
     width: '50%',
     selectOptions: [
       { label: 'Boy', value: 'boy' },
@@ -591,7 +591,7 @@ function RegistrationModal({
                             onChange={(e) => updateStudent(idx, field.fieldName, e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#3B4BC8] bg-white"
                           >
-                            <option value="">{field.label} (optional)</option>
+                            <option value="">{field.required ? `Select ${field.label}…` : `${field.label} (optional)`}</option>
                             {field.selectOptions?.map((opt) => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}

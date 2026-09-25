@@ -163,6 +163,7 @@ export const Registrations: CollectionConfig = {
           name: 'gender',
           type: 'select',
           label: 'Gender',
+          required: true,
           options: [
             { label: 'Boy', value: 'boy' },
             { label: 'Girl', value: 'girl' },
