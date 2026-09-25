@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 export const CampWeeks: CollectionConfig = {
   slug: 'camp-weeks',
   admin: {
+    group: 'Attributes',
     useAsTitle: 'label',
     defaultColumns: ['label', 'startDate', 'endDate'],
   },

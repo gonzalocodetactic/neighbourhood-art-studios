@@ -398,7 +398,8 @@ export type CampRegistrationInput = {
   emergencyContactPhone?: string
   emergencyContactEmail?: string
   students: Student[]
-  campSessionId: number | string
+  productId: number | string
+  campSessionId: number | string // variation row id inside the product
   checkoutAnswers: CheckoutAnswer[]
 }
 
@@ -408,12 +409,17 @@ export async function submitCampRegistration(
   try {
     const payload = await getPayload({ config: configPromise })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const session = await payload.findByID({ collection: 'camp-sessions', id: data.campSessionId as any, depth: 2 }) as any
+    const product = await payload.findByID({ collection: 'products', id: data.productId as any, depth: 0 }) as any
+    if (!product) return { success: false, error: 'Product not found' }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const variations: any[] = product.variations ?? []
+    const session = variations.find((v) => String(v.id) === String(data.campSessionId))
     if (!session) return { success: false, error: 'Camp session not found' }
+    if (session.status === 'closed') return { success: false, error: 'This camp session is closed.' }
 
     const registered: number = session.registeredCount ?? 0
     const capacity: number = session.capacity ?? 20
-    if (registered >= capacity) return { success: false, error: 'This camp session is full.' }
+    if (registered + data.students.length > capacity) return { success: false, error: 'This camp session is full.' }
 
     const unitPrice = Math.round((session.price ?? 0) * 100)
     const studentCount = data.students.length
@@ -426,7 +432,7 @@ export async function submitCampRegistration(
     const gstAmount = gstEnabled ? Math.round(subtotal * gstRate / 100) : 0
     const totalAmount = subtotal + gstAmount
 
-    const productId = typeof session.product === 'object' ? session.product.id : session.product
+    const productId = product.id
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const created = await payload.create({
@@ -449,7 +455,7 @@ export async function submitCampRegistration(
           ...(s.teacherName    ? { teacherName: s.teacherName }       : {}),
           ...(s.divisionNumber ? { divisionNumber: s.divisionNumber } : {}),
         })),
-        campSession:      data.campSessionId,
+        campVariationId:  String(data.campSessionId),
         product:          productId,
         unitPrice,
         studentCount,
@@ -462,11 +468,17 @@ export async function submitCampRegistration(
       } as any,
     })
 
-    // Increment registeredCount on the session
+    // Increment registeredCount on the variation inside the product
     await payload.update({
-      collection: 'camp-sessions',
-      id: data.campSessionId as any,
-      data: { registeredCount: registered + studentCount } as any,
+      collection: 'products',
+      id: product.id,
+      data: {
+        variations: variations.map((v) =>
+          String(v.id) === String(data.campSessionId)
+            ? { ...v, registeredCount: registered + studentCount }
+            : v,
+        ),
+      } as any,
     })
 
     return { success: true, id: created.id }

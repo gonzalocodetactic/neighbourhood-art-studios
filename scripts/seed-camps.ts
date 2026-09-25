@@ -1,66 +1,65 @@
+/**
+ * Idempotent seed: ensures the camp / session products exist and that each has
+ * one variation per Location × Timeslot × Camp Week (price $225 CAD, capacity 20).
+ * Existing variations keep their registeredCount, status, price and capacity.
+ *
+ * Usage: DATABASE_URI=file:./payload.db npx tsx scripts/seed-camps.ts
+ */
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
+
+const PRODUCTS = [
+  { title: 'Summer Art Camps 2026', legacyTitles: ['Summer Art Camp 2026', 'Summer Art Camp 2025'] },
+  { title: 'Spring Art Sessions 2026', legacyTitles: [] as string[] },
+]
 
 async function main() {
   const payload = await getPayload({ config: configPromise })
 
-  console.log('Seeding camp data…')
+  const [locations, timeslots, weeks] = await Promise.all([
+    payload.find({ collection: 'locations', limit: 500, depth: 0 }),
+    payload.find({ collection: 'timeslots', limit: 500, depth: 0 }),
+    payload.find({ collection: 'camp-weeks', limit: 500, depth: 0 }),
+  ])
+  console.log(`Matrix: ${locations.docs.length} locations × ${timeslots.docs.length} timeslots × ${weeks.docs.length} weeks`)
 
-  // Locations
-  const loc1 = await payload.create({ collection: 'locations', data: { name: 'Surrey Arts Centre', address: '13750 88 Ave', city: 'Surrey' } as any })
-  const loc2 = await payload.create({ collection: 'locations', data: { name: 'White Rock Community Centre', address: '15154 Russell Ave', city: 'White Rock' } as any })
-  const loc3 = await payload.create({ collection: 'locations', data: { name: 'Cloverdale Community Centre', address: '17655 57 Ave', city: 'Surrey' } as any })
-  console.log('Created locations:', loc1.id, loc2.id, loc3.id)
+  for (const def of PRODUCTS) {
+    const found = await payload.find({
+      collection: 'products',
+      limit: 1,
+      depth: 0,
+      where: { title: { in: [def.title, ...def.legacyTitles] } },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let product: any = found.docs[0]
+    if (!product) {
+      product = await payload.create({
+        collection: 'products',
+        data: { title: def.title, productType: 'camp', variations: [] } as any,
+      })
+      console.log(`Created product "${def.title}" (${product.id})`)
+    } else if (product.title !== def.title) {
+      product = await payload.update({ collection: 'products', id: product.id, data: { title: def.title } as any })
+      console.log(`Renamed product ${product.id} → "${def.title}"`)
+    }
 
-  // Timeslots
-  const ts1 = await payload.create({ collection: 'timeslots', data: { label: '9:00 AM – 3:00 PM', startTime: '09:00', endTime: '15:00' } as any })
-  const ts2 = await payload.create({ collection: 'timeslots', data: { label: '9:00 AM – 12:00 PM', startTime: '09:00', endTime: '12:00' } as any })
-  console.log('Created timeslots:', ts1.id, ts2.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const variations: any[] = (product.variations ?? []).filter((v: any) => v.location && v.timeslot && v.campWeek)
+    const keyOf = (l: unknown, t: unknown, w: unknown) => `${l}-${t}-${w}`
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existing = new Set(variations.map((v: any) => keyOf(v.location, v.timeslot, v.campWeek)))
 
-  // Camp weeks
-  const w1 = await payload.create({ collection: 'camp-weeks', data: { label: 'Week 1 (Jul 7–11)', startDate: '2025-07-07T07:00:00.000Z', endDate: '2025-07-11T07:00:00.000Z' } as any })
-  const w2 = await payload.create({ collection: 'camp-weeks', data: { label: 'Week 2 (Jul 14–18)', startDate: '2025-07-14T07:00:00.000Z', endDate: '2025-07-18T07:00:00.000Z' } as any })
-  const w3 = await payload.create({ collection: 'camp-weeks', data: { label: 'Week 3 (Jul 21–25)', startDate: '2025-07-21T07:00:00.000Z', endDate: '2025-07-25T07:00:00.000Z' } as any })
-  console.log('Created camp weeks:', w1.id, w2.id, w3.id)
+    let added = 0
+    for (const l of locations.docs) for (const t of timeslots.docs) for (const w of weeks.docs) {
+      if (existing.has(keyOf(l.id, t.id, w.id))) continue
+      variations.push({ location: l.id, timeslot: t.id, campWeek: w.id, price: 225, capacity: 20, registeredCount: 0, status: 'open' })
+      added++
+    }
 
-  // Camp product
-  const product = await payload.create({
-    collection: 'products',
-    data: {
-      title: 'Summer Art Camp 2025',
-      productType: 'camp',
-    } as any,
-  })
-  console.log('Created camp product:', product.id)
+    await payload.update({ collection: 'products', id: product.id, data: { variations } as any })
+    console.log(`"${def.title}": +${added} variations (${variations.length} total)`)
+  }
 
-  // Camp sessions
-  const s1 = await payload.create({
-    collection: 'camp-sessions',
-    data: {
-      product: product.id,
-      location: loc1.id,
-      timeslot: ts1.id,
-      campWeek: w1.id,
-      price: 225,
-      capacity: 20,
-      registeredCount: 0,
-      status: 'open',
-    } as any,
-  })
-  const s2 = await payload.create({
-    collection: 'camp-sessions',
-    data: {
-      product: product.id,
-      location: loc2.id,
-      timeslot: ts2.id,
-      campWeek: w2.id,
-      price: 150,
-      capacity: 15,
-      registeredCount: 0,
-      status: 'open',
-    } as any,
-  })
-  console.log('Created camp sessions:', s1.id, s2.id)
   console.log('Done!')
   process.exit(0)
 }

@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 export const Timeslots: CollectionConfig = {
   slug: 'timeslots',
   admin: {
+    group: 'Attributes',
     useAsTitle: 'label',
     defaultColumns: ['label', 'startTime', 'endTime'],
   },

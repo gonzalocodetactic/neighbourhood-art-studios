@@ -28,7 +28,7 @@ export default async function RegisterPage() {
   const payload = await getPayload({ config: configPromise })
 
   // ── parallel fetches ─────────────────────────────────────────────────────
-  const [citiesRes, schoolsRes, seasonsRes, productsRes, regsRes, gstSettings, termsRes, locationsRes, timeslotsRes, campWeeksRes, campSessionsRes] = await Promise.all([
+  const [citiesRes, schoolsRes, seasonsRes, productsRes, regsRes, gstSettings, termsRes, locationsRes, timeslotsRes, campWeeksRes] = await Promise.all([
     payload.find({ collection: 'cities', limit: 300, sort: 'title' }),
     payload.find({
       collection: 'schools',
@@ -64,7 +64,6 @@ export default async function RegisterPage() {
     payload.find({ collection: 'locations', limit: 200, sort: 'name' }).catch(() => ({ docs: [] })),
     payload.find({ collection: 'timeslots', limit: 100, sort: 'label' }).catch(() => ({ docs: [] })),
     payload.find({ collection: 'camp-weeks', limit: 200, sort: 'startDate' }).catch(() => ({ docs: [] })),
-    payload.find({ collection: 'camp-sessions', limit: 1000, depth: 2 }).catch(() => ({ docs: [] })),
   ])
 
   // ── Build enrollment count map keyed by `productId-schoolId-seasonId` ────
@@ -113,27 +112,34 @@ export default async function RegisterPage() {
     endDate: w.endDate ?? undefined,
   }))
 
-  const campSessions: RegisterPageData['campSessions'] = (campSessionsRes.docs as any[]).map((s) => ({
-    id: s.id,
-    productId: getId(s.product),
-    productTitle: getTitle(s.product),
-    locationId: getId(s.location),
-    locationName: getName(s.location),
-    timeslotId: getId(s.timeslot),
-    timeslotLabel: getLabel(s.timeslot),
-    campWeekId: getId(s.campWeek),
-    campWeekLabel: getLabel(s.campWeek),
-    price: s.price ?? 225,
-    capacity: s.capacity ?? 20,
-    registeredCount: s.registeredCount ?? 0,
-    status: s.status ?? 'open',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    checkoutFields: ((s.product as any)?.checkoutFields ?? []).map((f: any) => ({
-      label: f.label,
-      fieldType: f.fieldType ?? 'text',
-      required: f.required ?? false,
-    })),
-  }))
+  // Camp / session variations live inside camp-type products
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const campSessions: RegisterPageData['campSessions'] = (productsRes.docs as any[])
+    .filter((p) => p.productType === 'camp')
+    .flatMap((p) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (p.variations ?? []).map((v: any) => ({
+        id: v.id,
+        productId: p.id,
+        productTitle: p.title,
+        locationId: getId(v.location),
+        locationName: getName(v.location),
+        timeslotId: getId(v.timeslot),
+        timeslotLabel: getLabel(v.timeslot),
+        campWeekId: getId(v.campWeek),
+        campWeekLabel: getLabel(v.campWeek),
+        price: v.price ?? 225,
+        capacity: v.capacity ?? 20,
+        registeredCount: v.registeredCount ?? 0,
+        status: v.status ?? 'open',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        checkoutFields: (p.checkoutFields ?? []).map((f: any) => ({
+          label: f.label,
+          fieldType: f.fieldType ?? 'text',
+          required: f.required ?? false,
+        })),
+      })),
+    )
 
   // ── Flatten product variations ────────────────────────────────────────────
   const variations: RegisterPageData['variations'] = []

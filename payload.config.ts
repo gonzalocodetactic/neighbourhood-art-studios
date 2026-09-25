@@ -4,7 +4,6 @@ import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 
-import { CampSessions } from './src/collections/CampSessions'
 import { CampWeeks } from './src/collections/CampWeeks'
 import { Cities } from './src/collections/Cities'
 import { Forms } from './src/collections/Forms'
@@ -66,6 +65,7 @@ export default buildConfig({
     {
       slug: 'users',
       auth: true,
+      admin: { group: 'System / Users' },
       fields: [],
     },
     Media,
@@ -81,7 +81,6 @@ export default buildConfig({
     Locations,
     Timeslots,
     CampWeeks,
-    CampSessions,
   ],
   globals: [PaymentSettings, HeaderSettings, FooterSettings, EmailSettings],
   editor: lexicalEditor(),

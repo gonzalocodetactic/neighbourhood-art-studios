@@ -4,6 +4,7 @@ export const Products: CollectionConfig = {
   slug: 'products',
   admin: {
     useAsTitle: 'title',
+    group: 'Main',
     defaultColumns: ['title', 'updatedAt'],
     components: {
       edit: {
@@ -48,33 +49,50 @@ export const Products: CollectionConfig = {
     {
       name: 'variations',
       type: 'array',
-      label: 'School / City / Season Variations',
+      label: 'Variations',
       admin: {
-        description: 'One row per city–school–season combination this product is offered in.',
+        description:
+          'In-school products: one row per city–school–season. Camp / session products: one row per location–timeslot–camp week.',
       },
       fields: [
         {
           name: 'city',
           type: 'relationship',
           relationTo: 'cities',
-          required: true,
-        },
+                  },
         {
           name: 'school',
           type: 'relationship',
           relationTo: 'schools',
-          required: true,
-        },
+                  },
         {
           name: 'season',
           type: 'relationship',
           relationTo: 'seasons',
-          required: true,
+                  },
+        {
+          name: 'location',
+          type: 'relationship',
+          relationTo: 'locations',
+          admin: { description: 'Camp / session products only.' },
+        },
+        {
+          name: 'timeslot',
+          type: 'relationship',
+          relationTo: 'timeslots',
+          admin: { description: 'Camp / session products only.' },
+        },
+        {
+          name: 'campWeek',
+          type: 'relationship',
+          relationTo: 'camp-weeks',
+          admin: { description: 'Camp / session products only.' },
         },
         {
           name: 'price',
           type: 'number',
           required: true,
+          defaultValue: 225,
           min: 0,
           admin: {
             description: 'Price in CAD dollars (e.g. 180.00)',
@@ -89,6 +107,25 @@ export const Products: CollectionConfig = {
           admin: {
             description: 'Maximum number of students for this variation.',
           },
+        },
+        {
+          name: 'registeredCount',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            readOnly: true,
+            description: 'Auto-incremented when camp / session registrations are created.',
+          },
+        },
+        {
+          name: 'status',
+          type: 'select',
+          defaultValue: 'open',
+          options: [
+            { label: 'Open', value: 'open' },
+            { label: 'Waitlist', value: 'waitlist' },
+            { label: 'Closed', value: 'closed' },
+          ],
         },
       ],
     },

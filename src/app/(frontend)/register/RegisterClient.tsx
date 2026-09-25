@@ -508,6 +508,7 @@ function RegistrationModal({
           emergencyContactPhone:     ecPhone     || undefined,
           emergencyContactEmail:     ecEmail     || undefined,
           students: mappedStudents,
+          productId: variation.productId,
           campSessionId: variation.campSessionId,
           checkoutAnswers,
         }

@@ -4,6 +4,7 @@ export const Parents: CollectionConfig = {
   slug: 'parents',
   auth: true,
   admin: {
+    group: 'Main',
     useAsTitle: 'email',
     defaultColumns: ['firstName', 'lastName', 'email', 'phone', 'accountStatus', 'lastLoginAt', 'registrationCount', 'totalSpent', 'childrenSummary'],
     components: {

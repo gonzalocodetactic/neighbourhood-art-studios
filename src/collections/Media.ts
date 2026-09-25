@@ -11,6 +11,7 @@ export const Media: CollectionConfig = {
     read: () => true,
   },
   admin: {
+    group: 'System / Users',
     useAsTitle: 'filename',
   },
   upload: {

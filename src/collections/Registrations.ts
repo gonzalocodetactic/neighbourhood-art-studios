@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 export const Registrations: CollectionConfig = {
   slug: 'registrations',
   admin: {
+    group: 'Main',
     useAsTitle: 'parentFirstName',
     defaultColumns: ['id', 'parentFirstName', 'parentLastName', 'parentEmail', 'product', 'studentCount', 'totalAmount', 'paymentStatus', 'attendanceStatus', 'createdAt', 'monerisOrderId'],
   },
@@ -223,12 +224,11 @@ export const Registrations: CollectionConfig = {
       ],
     },
     {
-      name: 'campSession',
-      type: 'relationship',
-      relationTo: 'camp-sessions',
-      label: 'Camp Session',
+      name: 'campVariationId',
+      type: 'text',
+      label: 'Camp Variation ID',
       admin: {
-        description: 'Set for camp registrations (alternative to school/season).',
+        description: 'ID of the product variation row (location / timeslot / week) for camp registrations.',
       },
     },
     {

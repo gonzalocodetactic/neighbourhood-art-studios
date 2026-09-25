@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 export const Seasons: CollectionConfig = {
   slug: 'seasons',
   admin: {
+    group: 'Attributes',
     useAsTitle: 'title',
     defaultColumns: ['title', 'active'],
   },

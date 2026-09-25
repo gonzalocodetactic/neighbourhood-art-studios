@@ -136,6 +136,7 @@ const FooterCtaBlock: Block = {
 export const Pages: CollectionConfig = {
   slug: 'pages',
   admin: {
+    group: 'System / Users',
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', 'updatedAt'],
   },
