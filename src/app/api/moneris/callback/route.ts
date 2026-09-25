@@ -91,23 +91,10 @@ export async function POST(request: NextRequest) {
           id: found.docs[0].id,
           depth: 1,
         }) as any
-        const { sendOrderConfirmation } = await import('@/emails/sendOrderConfirmation')
-        sendOrderConfirmation(payload, {
-          id: fullReg.id,
-          parentFirstName: fullReg.parentFirstName ?? '',
-          parentLastName: fullReg.parentLastName ?? '',
-          parentEmail: fullReg.parentEmail ?? '',
-          parentPhone: fullReg.parentPhone ?? '',
-          productTitle: typeof fullReg.product === 'object' ? (fullReg.product?.title ?? '') : '',
-          schoolName: typeof fullReg.school === 'object' ? (fullReg.school?.title ?? '') : '',
-          seasonName: typeof fullReg.season === 'object' ? (fullReg.season?.title ?? '') : '',
-          students: Array.isArray(fullReg.students) ? fullReg.students : [],
-          unitPrice: fullReg.unitPrice ?? 0,
-          studentCount: fullReg.studentCount ?? 0,
-          subtotal: fullReg.subtotal ?? 0,
-          gstAmount: fullReg.gstAmount ?? 0,
-          totalAmount: fullReg.totalAmount ?? 0,
-        }).catch(console.error)
+        const { sendOrderConfirmation, toEmailRegistration } = await import('@/emails/sendOrderConfirmation')
+        toEmailRegistration(payload, fullReg)
+          .then((data) => sendOrderConfirmation(payload, data))
+          .catch(console.error)
       } catch { /* silent */ }
     }
 

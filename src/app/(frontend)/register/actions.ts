@@ -217,27 +217,10 @@ export async function initiateMonerisCheckout(
       }
 
       // Fire-and-forget emails
-      const { sendOrderConfirmation } = await import('@/emails/sendOrderConfirmation')
-      sendOrderConfirmation(payload, {
-        id: fullReg.id,
-        parentFirstName: fullReg.parentFirstName ?? '',
-        parentLastName: fullReg.parentLastName ?? '',
-        parentEmail: fullReg.parentEmail ?? '',
-        parentPhone: fullReg.parentPhone ?? '',
-        emergencyContactFirstName: fullReg.emergencyContactFirstName || undefined,
-        emergencyContactLastName: fullReg.emergencyContactLastName || undefined,
-        emergencyContactPhone: fullReg.emergencyContactPhone || undefined,
-        emergencyContactEmail: fullReg.emergencyContactEmail || undefined,
-        productTitle: typeof fullReg.product === 'object' ? (fullReg.product?.title ?? '') : '',
-        schoolName: typeof fullReg.school === 'object' ? (fullReg.school?.title ?? '') : '',
-        seasonName: typeof fullReg.season === 'object' ? (fullReg.season?.title ?? '') : '',
-        students: Array.isArray(fullReg.students) ? fullReg.students : [],
-        unitPrice: fullReg.unitPrice ?? 0,
-        studentCount: fullReg.studentCount ?? 0,
-        subtotal: fullReg.subtotal ?? 0,
-        gstAmount: fullReg.gstAmount ?? 0,
-        totalAmount: fullReg.totalAmount ?? 0,
-      }).catch(console.error)
+      const { sendOrderConfirmation, toEmailRegistration } = await import('@/emails/sendOrderConfirmation')
+      toEmailRegistration(payload, fullReg)
+        .then((data) => sendOrderConfirmation(payload, data))
+        .catch(console.error)
       if (isNewParent && tempPassword) {
         const { sendNewAccount } = await import('@/emails/sendNewAccount')
         sendNewAccount(payload, { firstName: fullReg.parentFirstName, email: fullReg.parentEmail, tempPassword }).catch(console.error)

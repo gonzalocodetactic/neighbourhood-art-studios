@@ -27,55 +27,104 @@ function wrap(content: string): string {
   return BASE.replace('{{CONTENT}}', content).replace('{{YEAR}}', String(new Date().getFullYear()))
 }
 
+function esc(value: string | number | undefined | null): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+export type ConfirmationStudent = {
+  name: string
+  /** e.g. "Age 9 · Grade 4" — empty when unknown */
+  detail: string
+  /** Registered product variation, e.g. "Week 1 (Jul 7–11) · 9:00 AM – 3:00 PM · Surrey Arts Centre" */
+  variation: string
+}
+
 export function buildOrderConfirmationHtml(opts: {
   heading: string
   intro: string
   footer: string
   parentName: string
+  orderId: string
   productTitle: string
+  /** 'camp' shows Location / Timeslot / Camp Week; 'school' shows School / Season */
+  programKind: 'school' | 'camp'
   schoolName: string
   seasonName: string
-  students: string[]
+  locationName: string
+  timeslotLabel: string
+  campWeekLabel: string
+  students: ConfirmationStudent[]
   unitPrice: number
   studentCount: number
   subtotal: number
   gstAmount: number
   totalAmount: number
+  paymentStatus: 'paid' | 'pending' | string
 }): string {
-  const studentRows = opts.students
-    .map((name) => `<tr><td style="padding:4px 0;font-size:14px;color:#374151;">· ${name}</td></tr>`)
+  const cell = 'padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;'
+  const row = (label: string, value: string, valign = '') =>
+    `<tr><td style="${cell}font-weight:600;${valign}">${label}</td><td style="${cell}">${value}</td></tr>`
+
+  const programRows =
+    opts.programKind === 'camp'
+      ? [
+          row('Location', esc(opts.locationName) || '—'),
+          row('Timeslot', esc(opts.timeslotLabel) || '—'),
+          row('Camp Week', esc(opts.campWeekLabel) || '—'),
+        ].join('')
+      : [row('School', esc(opts.schoolName) || '—'), row('Season', esc(opts.seasonName) || '—')].join('')
+
+  const studentList = opts.students
+    .map(
+      (st) => `<tr><td style="padding:6px 0;font-size:14px;color:#374151;">
+        <strong>${esc(st.name)}</strong>${st.detail ? ` <span style="color:#6b7280;">· ${esc(st.detail)}</span>` : ''}
+        ${st.variation ? `<br><span style="font-size:12px;color:#6b7280;">${esc(st.variation)}</span>` : ''}
+      </td></tr>`,
+    )
     .join('')
 
+  const gstRate = opts.subtotal > 0 ? Math.round((opts.gstAmount / opts.subtotal) * 100) : 0
+  const gstRow =
+    opts.gstAmount > 0 ? row(gstRate ? `GST (${gstRate}%)` : 'GST', formatCents(opts.gstAmount)) : ''
+
+  const isPaid = opts.paymentStatus === 'paid'
+  const statusBadge = `<span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:${
+    isPaid ? '#dcfce7' : '#fef3c7'
+  };color:${isPaid ? '#166534' : '#92400e'};">${isPaid ? 'Paid' : 'Pending'}</span>`
+
   const content = `
-    <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#3B4BC8;">${opts.heading}</h1>
-    <p style="margin:0 0 24px;font-size:15px;color:#374151;">Hi ${opts.parentName},</p>
-    <p style="margin:0 0 24px;font-size:15px;color:#374151;">${opts.intro}</p>
+    <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#3B4BC8;">${esc(opts.heading)}</h1>
+    <p style="margin:0 0 20px;font-size:14px;font-weight:600;color:#374151;">Order Reference: <span style="font-family:Menlo,Consolas,monospace;">${esc(opts.orderId)}</span></p>
+    <p style="margin:0 0 24px;font-size:15px;color:#374151;">Hi ${esc(opts.parentName)},</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#374151;">${esc(opts.intro)}</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+      <tr style="background:#f9fafb;">
+        <td colspan="2" style="padding:12px 16px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Program Details</td>
+      </tr>
+      ${row('Program', esc(opts.productTitle))}
+      ${programRows}
+      ${row('Students', `<table cellpadding="0" cellspacing="0">${studentList}</table>`, 'vertical-align:top;')}
+    </table>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
       <tr style="background:#f9fafb;">
         <td colspan="2" style="padding:12px 16px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Order Summary</td>
       </tr>
-      <tr><td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;font-weight:600;">Program</td>
-          <td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;">${opts.productTitle}</td></tr>
-      <tr><td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;font-weight:600;">School</td>
-          <td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;">${opts.schoolName}</td></tr>
-      <tr><td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;font-weight:600;">Season</td>
-          <td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;">${opts.seasonName}</td></tr>
-      <tr><td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;font-weight:600;vertical-align:top;">Students</td>
-          <td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;">
-            <table cellpadding="0" cellspacing="0">${studentRows}</table>
-          </td></tr>
-      <tr><td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;font-weight:600;">Price / student</td>
-          <td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;">${formatCents(opts.unitPrice)}</td></tr>
-      <tr><td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;font-weight:600;">Subtotal</td>
-          <td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;">${formatCents(opts.subtotal)}</td></tr>
-      ${opts.gstAmount > 0 ? `<tr><td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;font-weight:600;">GST</td>
-          <td style="padding:10px 16px;font-size:14px;color:#374151;border-top:1px solid #e5e7eb;">${formatCents(opts.gstAmount)}</td></tr>` : ''}
+      ${row('Price / student', formatCents(opts.unitPrice))}
+      ${row('Students', String(opts.studentCount))}
+      ${row('Subtotal', formatCents(opts.subtotal))}
+      ${gstRow}
       <tr style="background:#f0f3ff;"><td style="padding:12px 16px;font-size:15px;color:#3B4BC8;border-top:1px solid #e5e7eb;font-weight:700;">Total</td>
           <td style="padding:12px 16px;font-size:15px;color:#3B4BC8;border-top:1px solid #e5e7eb;font-weight:700;">${formatCents(opts.totalAmount)}</td></tr>
+      ${row('Payment Status', statusBadge)}
     </table>
 
-    <p style="margin:0;font-size:14px;color:#6b7280;">${opts.footer}</p>
+    <p style="margin:0;font-size:14px;color:#6b7280;">${esc(opts.footer)}</p>
   `
   return wrap(content)
 }
