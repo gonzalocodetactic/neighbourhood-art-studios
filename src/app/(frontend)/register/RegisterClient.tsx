@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { getRegistrationByOrderId, initiateMonerisCheckout, submitRegistration, submitWaitlist, type CheckoutAnswer, type RegistrationDetails, type RegistrationInput, type Student, type WaitlistInput } from './actions'
+import { getRegistrationByOrderId, initiateMonerisCheckout, submitCampRegistration, submitRegistration, submitWaitlist, type CampRegistrationInput, type CheckoutAnswer, type RegistrationDetails, type RegistrationInput, type Student, type WaitlistInput } from './actions'
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -41,9 +41,36 @@ export type RegisterPageData = {
     }> | null
     checkoutFields: Array<{ label: string; fieldType: string; required: boolean }>
   }>
+  campLocations: Array<{ id: number | string; name: string; address?: string; city?: string }>
+  campTimeslots: Array<{ id: number | string; label: string }>
+  campWeeks: Array<{ id: number | string; label: string; startDate?: string; endDate?: string }>
+  campSessions: Array<{
+    id: number | string
+    productId: number | string
+    productTitle: string
+    locationId: number | string
+    locationName: string
+    timeslotId: number | string
+    timeslotLabel: string
+    campWeekId: number | string
+    campWeekLabel: string
+    price: number
+    capacity: number
+    registeredCount: number
+    status: string
+    checkoutFields: Array<{ label: string; fieldType: string; required: boolean }>
+  }>
 }
 
-type Variation = RegisterPageData['variations'][number]
+type Variation = RegisterPageData['variations'][number] & {
+  isCamp?: boolean
+  campSessionId?: number | string
+  locationName?: string
+  timeslotLabel?: string
+  campWeekLabel?: string
+}
+
+type CampSession = RegisterPageData['campSessions'][number]
 
 export type SavedStudent = {
   id: string
@@ -281,6 +308,74 @@ function ProgramCard({
   )
 }
 
+// ── Camp program card ──────────────────────────────────────────────────────────
+
+function CampProgramCard({
+  session,
+  onRegister,
+}: {
+  session: CampSession
+  onRegister: (s: CampSession) => void
+}) {
+  const spotsLeft = session.capacity - session.registeredCount
+  const isFull = spotsLeft <= 0 || session.status === 'closed'
+  const isWaitlist = session.status === 'waitlist'
+  const pct = Math.min(100, (session.registeredCount / session.capacity) * 100)
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-gray-900 mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+            {session.productTitle}
+          </h3>
+          <p className="text-sm text-gray-600 mb-0.5">{session.timeslotLabel}</p>
+          <p className="text-2xl font-bold text-[#3B4BC8] mt-1">{formatPrice(session.price)}</p>
+        </div>
+        {isFull ? (
+          <span className="flex-shrink-0 px-3 py-1 text-xs font-bold text-white bg-red-500 rounded-full">FULL</span>
+        ) : isWaitlist ? (
+          <span className="flex-shrink-0 px-3 py-1 text-xs font-bold text-white bg-amber-500 rounded-full">WAITLIST</span>
+        ) : (
+          <span className={`flex-shrink-0 text-xs font-semibold ${spotsColor(spotsLeft, session.capacity)}`}>
+            {spotsLeft} / {session.capacity} spots
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4">
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+          <span>{session.registeredCount} enrolled</span>
+          <span>{session.capacity} capacity</span>
+        </div>
+        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${isFull ? 'bg-red-400' : pct >= 75 ? 'bg-amber-400' : 'bg-[#3B4BC8]'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        {!isFull && !isWaitlist && spotsLeft <= 5 && (
+          <p className="mt-1 text-xs font-semibold text-red-500">
+            Only {spotsLeft} spot{spotsLeft !== 1 ? 's' : ''} left!
+          </p>
+        )}
+      </div>
+
+      <div className="mt-5">
+        <button
+          onClick={() => onRegister(session)}
+          disabled={isFull}
+          className={`w-full py-2.5 text-sm font-semibold text-white rounded-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+            isFull ? 'bg-gray-400' : 'bg-[#3B4BC8] hover:bg-[#2D3AAA]'
+          }`}
+        >
+          {isFull ? 'Session Full' : isWaitlist ? 'Join Waitlist' : 'Register Now'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Registration modal ─────────────────────────────────────────────────────────
 
 const DEFAULT_STUDENT_FIELDS: NonNullable<RegisterPageData['variations'][number]['perStudentFields']> = [
@@ -389,41 +484,61 @@ function RegistrationModal({
       value: answers[f.label] ?? '',
     }))
 
-    const input: RegistrationInput = {
-      parentFirstName,
-      parentLastName,
-      parentEmail,
-      parentPhone,
-      emergencyContactFirstName: ecFirstName || undefined,
-      emergencyContactLastName:  ecLastName  || undefined,
-      emergencyContactPhone:     ecPhone     || undefined,
-      emergencyContactEmail:     ecEmail     || undefined,
-      students: students.map((s) => ({
-        firstName: s.firstName,
-        ...(s.lastName                  ? { lastName: s.lastName }             : {}),
-        ...(s.age                       ? { age: s.age }                       : {}),
-        ...(s.grade                     ? { grade: s.grade }                   : {}),
-        gender: (s.gender && s.gender !== '') ? s.gender : 'Rather Not Say',
-        ...(s.teacherName               ? { teacherName: s.teacherName }       : {}),
-        ...(s.divisionNumber            ? { divisionNumber: s.divisionNumber } : {}),
-      })),
-      schoolId:  variation.schoolId,
-      seasonId:  variation.seasonId,
-      productId: variation.productId,
-      checkoutAnswers,
-    }
+    const mappedStudents: Student[] = students.map((s) => ({
+      firstName: s.firstName,
+      ...(s.lastName       ? { lastName: s.lastName }             : {}),
+      ...(s.age            ? { age: s.age }                       : {}),
+      ...(s.grade          ? { grade: s.grade }                   : {}),
+      gender: (s.gender && s.gender !== '') ? s.gender : 'Rather Not Say',
+      ...(s.teacherName    ? { teacherName: s.teacherName }       : {}),
+      ...(s.divisionNumber ? { divisionNumber: s.divisionNumber } : {}),
+    }))
 
     startTransition(async () => {
-      const result = await submitRegistration(input)
-      if (!result.success) {
-        setError(result.error)
-        return
+      let regId: number | string
+
+      if (variation.isCamp && variation.campSessionId != null) {
+        const campInput: CampRegistrationInput = {
+          parentFirstName,
+          parentLastName,
+          parentEmail,
+          parentPhone,
+          emergencyContactFirstName: ecFirstName || undefined,
+          emergencyContactLastName:  ecLastName  || undefined,
+          emergencyContactPhone:     ecPhone     || undefined,
+          emergencyContactEmail:     ecEmail     || undefined,
+          students: mappedStudents,
+          campSessionId: variation.campSessionId,
+          checkoutAnswers,
+        }
+        const result = await submitCampRegistration(campInput)
+        if (!result.success) { setError(result.error); return }
+        regId = result.id
+      } else {
+        const input: RegistrationInput = {
+          parentFirstName,
+          parentLastName,
+          parentEmail,
+          parentPhone,
+          emergencyContactFirstName: ecFirstName || undefined,
+          emergencyContactLastName:  ecLastName  || undefined,
+          emergencyContactPhone:     ecPhone     || undefined,
+          emergencyContactEmail:     ecEmail     || undefined,
+          students: mappedStudents,
+          schoolId:  variation.schoolId,
+          seasonId:  variation.seasonId,
+          productId: variation.productId,
+          checkoutAnswers,
+        }
+        const result = await submitRegistration(input)
+        if (!result.success) { setError(result.error); return }
+        regId = result.id
       }
-      const checkoutResult = await initiateMonerisCheckout(result.id)
+
+      const checkoutResult = await initiateMonerisCheckout(regId)
       if ('checkoutUrl' in checkoutResult) {
         window.location.href = checkoutResult.checkoutUrl
       } else {
-        // Moneris not configured — fall back to success banner
         onSuccess()
       }
     })
@@ -691,7 +806,10 @@ function RegistrationModal({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">
-                  {variation.productTitle} ({variation.schoolName} – {variation.seasonName}) × {students.length} student{students.length !== 1 ? 's' : ''}
+                  {variation.productTitle} {variation.isCamp
+                    ? `(${variation.locationName ?? variation.schoolName} – ${variation.campWeekLabel ?? variation.seasonName})`
+                    : `(${variation.schoolName} – ${variation.seasonName})`
+                  } × {students.length} student{students.length !== 1 ? 's' : ''}
                 </span>
                 <span className="text-gray-800">{formatPrice(subtotal)}</span>
               </div>
@@ -988,10 +1106,22 @@ export default function RegisterClient({
   variations,
   gstSettings,
   termsContent,
+  campLocations,
+  campTimeslots,
+  campWeeks,
+  campSessions,
 }: RegisterPageData) {
+  // in-school flow state
   const [cityId, setCityId] = useState('')
   const [schoolId, setSchoolId] = useState('')
   const [seasonId, setSeasonId] = useState('')
+
+  // camp flow state
+  const [programType, setProgramType] = useState<'school' | 'camp'>('school')
+  const [campLocationId, setCampLocationId] = useState('')
+  const [campTimeslotId, setCampTimeslotId] = useState('')
+  const [campWeekId, setCampWeekId] = useState('')
+
   const [modalVariation, setModalVariation] = useState<Variation | null>(null)
   const [waitlistVariation, setWaitlistVariation] = useState<Variation | null>(null)
   const [registrationSuccess, setRegistrationSuccess] = useState(false)
@@ -1046,6 +1176,40 @@ export default function RegisterClient({
     setSchoolId(id)
     const fall2026 = seasons.find((s) => s.title === 'Fall 2026')
     setSeasonId(fall2026 ? String(fall2026.id) : '')
+  }
+
+  // ── Camp derived state ────────────────────────────────────────────────────────
+  const filteredCampSessions = campSessions.filter((s) => {
+    if (campLocationId && String(s.locationId) !== campLocationId) return false
+    if (campTimeslotId && String(s.timeslotId) !== campTimeslotId) return false
+    if (campWeekId && String(s.campWeekId) !== campWeekId) return false
+    return true
+  })
+
+  const campStep = !campLocationId ? 1 : !campTimeslotId ? 2 : !campWeekId ? 3 : 4
+
+  function openCampSession(session: CampSession) {
+    const v: Variation = {
+      variationKey: `camp-${session.id}`,
+      productId: session.productId,
+      productTitle: session.productTitle,
+      cityId: '',
+      schoolId: '',
+      seasonId: '',
+      price: session.price,
+      capacity: session.capacity,
+      enrolled: session.registeredCount,
+      schoolName: session.locationName,
+      seasonName: session.campWeekLabel,
+      perStudentFields: null,
+      checkoutFields: session.checkoutFields,
+      isCamp: true,
+      campSessionId: session.id,
+      locationName: session.locationName,
+      timeslotLabel: session.timeslotLabel,
+      campWeekLabel: session.campWeekLabel,
+    }
+    setModalVariation(v)
   }
 
   // ── Registration success full-page card ──────────────────────────────────────
@@ -1211,13 +1375,46 @@ export default function RegisterClient({
           Register for a Program
         </h1>
         <p className="mt-2 text-sm text-white/75">
-          Select your city, school, and season to see available programs and register.
+          Choose a program type to see available sessions and register.
         </p>
       </div>
 
       <div className="max-w-2xl mx-auto px-8 py-12">
-        {/* Step tracker */}
-        <StepIndicator active={step} />
+
+        {/* ── Program type selector ─────────────────────────────────────────── */}
+        <div className="mb-10">
+          <label className="block text-sm font-bold text-gray-700 mb-3">What type of program are you looking for?</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setProgramType('school')}
+              className={`px-4 py-4 rounded-xl border-2 text-left transition-all ${
+                programType === 'school'
+                  ? 'border-[#3B4BC8] bg-[#3B4BC8]/5'
+                  : 'border-gray-200 hover:border-[#3B4BC8]/40'
+              }`}
+            >
+              <p className={`text-sm font-bold ${programType === 'school' ? 'text-[#3B4BC8]' : 'text-gray-700'}`}>
+                In-School Art Classes
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">Weekday programs at your school</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setProgramType('camp')}
+              className={`px-4 py-4 rounded-xl border-2 text-left transition-all ${
+                programType === 'camp'
+                  ? 'border-[#3B4BC8] bg-[#3B4BC8]/5'
+                  : 'border-gray-200 hover:border-[#3B4BC8]/40'
+              }`}
+            >
+              <p className={`text-sm font-bold ${programType === 'camp' ? 'text-[#3B4BC8]' : 'text-gray-700'}`}>
+                Spring &amp; Summer Art Camps
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">Full-day camp sessions</p>
+            </button>
+          </div>
+        </div>
 
         {/* Waitlist success banner */}
         {waitlistSuccess && (
@@ -1262,103 +1459,193 @@ export default function RegisterClient({
           </div>
         )}
 
-        {/* ── Step 1: City ─────────────────────────────────────────────────── */}
-        <div className="mb-7">
-          <label className="block text-sm font-bold text-gray-700 mb-2">
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">
-              1
-            </span>
-            Select your city
-          </label>
-          <select
-            value={cityId}
-            onChange={(e) => handleCityChange(e.target.value)}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-[#3B4BC8] focus:ring-1 focus:ring-[#3B4BC8] appearance-none"
-          >
-            <option value="">Choose a city…</option>
-            {cities.map((c) => (
-              <option key={c.id} value={String(c.id)}>
-                {c.title}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* ── In-School flow ────────────────────────────────────────────────── */}
+        {programType === 'school' && (
+          <>
+            <StepIndicator active={step} />
 
-        {/* ── Step 2: School ───────────────────────────────────────────────── */}
-        {cityId && (
-          <div className="mb-7 animate-in fade-in duration-200">
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">
-                2
-              </span>
-              Select your school
-              <span className="ml-2 text-xs font-normal text-gray-400">
-                ({filteredSchools.length} schools)
-              </span>
-            </label>
-            <SchoolSearch
-              schools={filteredSchools}
-              value={schoolId}
-              onChange={handleSchoolChange}
-            />
-          </div>
-        )}
-
-        {/* ── Step 3: Season ───────────────────────────────────────────────── */}
-        {schoolId && (
-          <div className="mb-10 animate-in fade-in duration-200">
-            <label className="block text-sm font-bold text-gray-700 mb-2">
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">
-                3
-              </span>
-              Select a season
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {seasons.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setSeasonId(String(s.id))}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                    String(s.id) === seasonId
-                      ? 'border-[#3B4BC8] bg-[#3B4BC8] text-white'
-                      : 'border-gray-300 text-gray-600 hover:border-[#3B4BC8] hover:text-[#3B4BC8]'
-                  }`}
-                >
-                  {s.title}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 4: Programs ─────────────────────────────────────────────── */}
-        {seasonId && (
-          <div className="animate-in fade-in duration-200">
-            <h2
-              className="text-xl font-bold text-gray-900 mb-5"
-              style={{ fontFamily: 'Georgia, serif' }}
-            >
-              Available Programs
-            </h2>
-
-            {matchingVariations.length === 0 ? (
-              <div className="border border-dashed border-gray-300 rounded-xl p-8 text-center">
-                <p className="text-gray-500 text-sm">
-                  No programs are currently scheduled for this school and season.
-                </p>
-                <p className="text-xs text-gray-400 mt-2">
-                  Check back soon or contact us to be notified when registration opens.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-4">
-                {matchingVariations.map((v) => (
-                  <ProgramCard key={v.variationKey} variation={v} onRegister={setModalVariation} onWaitlist={setWaitlistVariation} />
+            {/* Step 1: City */}
+            <div className="mb-7">
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">1</span>
+                Select your city
+              </label>
+              <select
+                value={cityId}
+                onChange={(e) => handleCityChange(e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-[#3B4BC8] focus:ring-1 focus:ring-[#3B4BC8] appearance-none"
+              >
+                <option value="">Choose a city…</option>
+                {cities.map((c) => (
+                  <option key={c.id} value={String(c.id)}>{c.title}</option>
                 ))}
+              </select>
+            </div>
+
+            {/* Step 2: School */}
+            {cityId && (
+              <div className="mb-7 animate-in fade-in duration-200">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">2</span>
+                  Select your school
+                  <span className="ml-2 text-xs font-normal text-gray-400">({filteredSchools.length} schools)</span>
+                </label>
+                <SchoolSearch schools={filteredSchools} value={schoolId} onChange={handleSchoolChange} />
               </div>
             )}
-          </div>
+
+            {/* Step 3: Season */}
+            {schoolId && (
+              <div className="mb-10 animate-in fade-in duration-200">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">3</span>
+                  Select a season
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {seasons.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSeasonId(String(s.id))}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        String(s.id) === seasonId
+                          ? 'border-[#3B4BC8] bg-[#3B4BC8] text-white'
+                          : 'border-gray-300 text-gray-600 hover:border-[#3B4BC8] hover:text-[#3B4BC8]'
+                      }`}
+                    >
+                      {s.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Programs */}
+            {seasonId && (
+              <div className="animate-in fade-in duration-200">
+                <h2 className="text-xl font-bold text-gray-900 mb-5" style={{ fontFamily: 'Georgia, serif' }}>
+                  Available Programs
+                </h2>
+                {matchingVariations.length === 0 ? (
+                  <div className="border border-dashed border-gray-300 rounded-xl p-8 text-center">
+                    <p className="text-gray-500 text-sm">No programs are currently scheduled for this school and season.</p>
+                    <p className="text-xs text-gray-400 mt-2">Check back soon or contact us to be notified when registration opens.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {matchingVariations.map((v) => (
+                      <ProgramCard key={v.variationKey} variation={v} onRegister={setModalVariation} onWaitlist={setWaitlistVariation} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Camp flow ─────────────────────────────────────────────────────── */}
+        {programType === 'camp' && (
+          <>
+            {/* Location */}
+            <div className="mb-7">
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">1</span>
+                Select a location
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {campLocations.map((loc) => (
+                  <button
+                    key={loc.id}
+                    type="button"
+                    onClick={() => { setCampLocationId(String(loc.id)); setCampTimeslotId(''); setCampWeekId('') }}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                      String(loc.id) === campLocationId
+                        ? 'border-[#3B4BC8] bg-[#3B4BC8] text-white'
+                        : 'border-gray-300 text-gray-600 hover:border-[#3B4BC8] hover:text-[#3B4BC8]'
+                    }`}
+                  >
+                    {loc.name}{loc.city ? ` · ${loc.city}` : ''}
+                  </button>
+                ))}
+                {campLocations.length === 0 && (
+                  <p className="text-sm text-gray-400">No camp locations available yet.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Timeslot */}
+            {campLocationId && (
+              <div className="mb-7 animate-in fade-in duration-200">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">2</span>
+                  Select a time
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {campTimeslots.map((ts) => (
+                    <button
+                      key={ts.id}
+                      type="button"
+                      onClick={() => { setCampTimeslotId(String(ts.id)); setCampWeekId('') }}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        String(ts.id) === campTimeslotId
+                          ? 'border-[#3B4BC8] bg-[#3B4BC8] text-white'
+                          : 'border-gray-300 text-gray-600 hover:border-[#3B4BC8] hover:text-[#3B4BC8]'
+                      }`}
+                    >
+                      {ts.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Week */}
+            {campTimeslotId && (
+              <div className="mb-10 animate-in fade-in duration-200">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">3</span>
+                  Select a week
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {campWeeks.map((w) => (
+                    <button
+                      key={w.id}
+                      type="button"
+                      onClick={() => setCampWeekId(String(w.id))}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        String(w.id) === campWeekId
+                          ? 'border-[#3B4BC8] bg-[#3B4BC8] text-white'
+                          : 'border-gray-300 text-gray-600 hover:border-[#3B4BC8] hover:text-[#3B4BC8]'
+                      }`}
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sessions grid */}
+            {campWeekId && (
+              <div className="animate-in fade-in duration-200">
+                <h2 className="text-xl font-bold text-gray-900 mb-5" style={{ fontFamily: 'Georgia, serif' }}>
+                  Available Camp Sessions
+                </h2>
+                {filteredCampSessions.length === 0 ? (
+                  <div className="border border-dashed border-gray-300 rounded-xl p-8 text-center">
+                    <p className="text-gray-500 text-sm">No sessions available for this combination.</p>
+                    <p className="text-xs text-gray-400 mt-2">Try a different location, time, or week.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4">
+                    {filteredCampSessions.map((s) => (
+                      <CampProgramCard key={s.id} session={s} onRegister={openCampSession} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
 

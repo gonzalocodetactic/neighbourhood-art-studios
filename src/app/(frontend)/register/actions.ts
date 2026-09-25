@@ -387,3 +387,91 @@ export async function submitRegistration(
     return { success: false, error: message }
   }
 }
+
+export type CampRegistrationInput = {
+  parentFirstName: string
+  parentLastName: string
+  parentEmail: string
+  parentPhone: string
+  emergencyContactFirstName?: string
+  emergencyContactLastName?: string
+  emergencyContactPhone?: string
+  emergencyContactEmail?: string
+  students: Student[]
+  campSessionId: number | string
+  checkoutAnswers: CheckoutAnswer[]
+}
+
+export async function submitCampRegistration(
+  data: CampRegistrationInput,
+): Promise<{ success: true; id: number | string } | { success: false; error: string }> {
+  try {
+    const payload = await getPayload({ config: configPromise })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const session = await payload.findByID({ collection: 'camp-sessions', id: data.campSessionId as any, depth: 2 }) as any
+    if (!session) return { success: false, error: 'Camp session not found' }
+
+    const registered: number = session.registeredCount ?? 0
+    const capacity: number = session.capacity ?? 20
+    if (registered >= capacity) return { success: false, error: 'This camp session is full.' }
+
+    const unitPrice = Math.round((session.price ?? 0) * 100)
+    const studentCount = data.students.length
+    const subtotal = unitPrice * studentCount
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const settings = (await payload.findGlobal({ slug: 'payment-settings' })) as any
+    const gstEnabled: boolean = settings?.gstEnabled ?? true
+    const gstRate: number = typeof settings?.gstRate === 'number' ? settings.gstRate : 5
+    const gstAmount = gstEnabled ? Math.round(subtotal * gstRate / 100) : 0
+    const totalAmount = subtotal + gstAmount
+
+    const productId = typeof session.product === 'object' ? session.product.id : session.product
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const created = await payload.create({
+      collection: 'registrations',
+      data: {
+        parentFirstName: data.parentFirstName,
+        parentLastName:  data.parentLastName,
+        parentEmail:     data.parentEmail,
+        parentPhone:     data.parentPhone,
+        ...(data.emergencyContactFirstName ? { emergencyContactFirstName: data.emergencyContactFirstName } : {}),
+        ...(data.emergencyContactLastName  ? { emergencyContactLastName:  data.emergencyContactLastName  } : {}),
+        ...(data.emergencyContactPhone     ? { emergencyContactPhone:     data.emergencyContactPhone     } : {}),
+        ...(data.emergencyContactEmail     ? { emergencyContactEmail:     data.emergencyContactEmail     } : {}),
+        students: data.students.map((s) => ({
+          firstName: s.firstName,
+          ...(s.lastName       ? { lastName: s.lastName }             : {}),
+          ...(s.age            ? { age: s.age }                       : {}),
+          ...(s.grade          ? { grade: s.grade }                   : {}),
+          gender: (s.gender && s.gender !== '') ? s.gender : 'Rather Not Say',
+          ...(s.teacherName    ? { teacherName: s.teacherName }       : {}),
+          ...(s.divisionNumber ? { divisionNumber: s.divisionNumber } : {}),
+        })),
+        campSession:      data.campSessionId,
+        product:          productId,
+        unitPrice,
+        studentCount,
+        subtotal,
+        gstAmount,
+        totalAmount,
+        paymentStatus:    'pending',
+        attendanceStatus: 'enrolled',
+        checkoutAnswers:  data.checkoutAnswers,
+      } as any,
+    })
+
+    // Increment registeredCount on the session
+    await payload.update({
+      collection: 'camp-sessions',
+      id: data.campSessionId as any,
+      data: { registeredCount: registered + studentCount } as any,
+    })
+
+    return { success: true, id: created.id }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return { success: false, error: message }
+  }
+}

@@ -31,6 +31,17 @@ export const Products: CollectionConfig = {
       required: true,
     },
     {
+      name: 'productType',
+      type: 'select',
+      defaultValue: 'in-school',
+      options: [
+        { label: 'In-School Art Classes', value: 'in-school' },
+        { label: 'Art Camp', value: 'camp' },
+        { label: 'Workshop', value: 'workshop' },
+      ],
+      admin: { position: 'sidebar' },
+    },
+    {
       name: 'description',
       type: 'richText',
     },

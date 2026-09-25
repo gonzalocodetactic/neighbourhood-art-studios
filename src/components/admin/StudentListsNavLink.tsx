@@ -5,12 +5,12 @@ import { usePathname } from 'next/navigation'
 
 export function StudentListsNavLink() {
   const pathname = usePathname()
-  const active = pathname?.startsWith('/admin/collections/registrations') ?? false
+  const active = pathname?.startsWith('/admin/student-roster') ?? false
 
   return (
     <div style={{ padding: '0 16px', marginTop: 4 }}>
       <Link
-        href="/admin/collections/registrations"
+        href="/admin/student-roster"
         style={{
           display: 'block',
           padding: '8px 12px',

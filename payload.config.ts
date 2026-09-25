@@ -4,8 +4,11 @@ import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 
+import { CampSessions } from './src/collections/CampSessions'
+import { CampWeeks } from './src/collections/CampWeeks'
 import { Cities } from './src/collections/Cities'
 import { Forms } from './src/collections/Forms'
+import { Locations } from './src/collections/Locations'
 import { Media } from './src/collections/Media'
 import { Pages } from './src/collections/Pages'
 import { Parents } from './src/collections/Parents'
@@ -13,6 +16,7 @@ import { Products } from './src/collections/Products'
 import { Registrations } from './src/collections/Registrations'
 import { Schools } from './src/collections/Schools'
 import { Seasons } from './src/collections/Seasons'
+import { Timeslots } from './src/collections/Timeslots'
 import { Waitlist } from './src/collections/Waitlist'
 import { EmailSettings } from './src/globals/EmailSettings'
 import { PaymentSettings } from './src/globals/PaymentSettings'
@@ -82,6 +86,10 @@ export default buildConfig({
     Registrations,
     Waitlist,
     Parents,
+    Locations,
+    Timeslots,
+    CampWeeks,
+    CampSessions,
   ],
   globals: [PaymentSettings, HeaderSettings, FooterSettings, EmailSettings],
   editor: lexicalEditor(),

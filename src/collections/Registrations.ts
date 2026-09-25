@@ -208,13 +208,11 @@ export const Registrations: CollectionConfig = {
           name: 'school',
           type: 'relationship',
           relationTo: 'schools',
-          required: true,
         },
         {
           name: 'season',
           type: 'relationship',
           relationTo: 'seasons',
-          required: true,
         },
         {
           name: 'product',
@@ -223,6 +221,15 @@ export const Registrations: CollectionConfig = {
           required: true,
         },
       ],
+    },
+    {
+      name: 'campSession',
+      type: 'relationship',
+      relationTo: 'camp-sessions',
+      label: 'Camp Session',
+      admin: {
+        description: 'Set for camp registrations (alternative to school/season).',
+      },
     },
     {
       name: 'classDate',

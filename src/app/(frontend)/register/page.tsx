@@ -14,11 +14,21 @@ function getTitle(val: unknown): string {
   return ''
 }
 
+function getName(val: unknown): string {
+  if (val && typeof val === 'object' && 'name' in val) return (val as { name: string }).name ?? ''
+  return ''
+}
+
+function getLabel(val: unknown): string {
+  if (val && typeof val === 'object' && 'label' in val) return (val as { label: string }).label ?? ''
+  return ''
+}
+
 export default async function RegisterPage() {
   const payload = await getPayload({ config: configPromise })
 
   // ── parallel fetches ─────────────────────────────────────────────────────
-  const [citiesRes, schoolsRes, seasonsRes, productsRes, regsRes, gstSettings, termsRes] = await Promise.all([
+  const [citiesRes, schoolsRes, seasonsRes, productsRes, regsRes, gstSettings, termsRes, locationsRes, timeslotsRes, campWeeksRes, campSessionsRes] = await Promise.all([
     payload.find({ collection: 'cities', limit: 300, sort: 'title' }),
     payload.find({
       collection: 'schools',
@@ -51,6 +61,10 @@ export default async function RegisterPage() {
     }),
     getPaymentSettings(),
     payload.find({ collection: 'pages', where: { slug: { equals: 'terms-and-conditions' } }, limit: 1, depth: 0 }),
+    payload.find({ collection: 'locations', limit: 200, sort: 'name' }).catch(() => ({ docs: [] })),
+    payload.find({ collection: 'timeslots', limit: 100, sort: 'label' }).catch(() => ({ docs: [] })),
+    payload.find({ collection: 'camp-weeks', limit: 200, sort: 'startDate' }).catch(() => ({ docs: [] })),
+    payload.find({ collection: 'camp-sessions', limit: 1000, depth: 2 }).catch(() => ({ docs: [] })),
   ])
 
   // ── Build enrollment count map keyed by `productId-schoolId-seasonId` ────
@@ -79,9 +93,53 @@ export default async function RegisterPage() {
     title: s.title,
   }))
 
+  // ── Normalize camp data ───────────────────────────────────────────────────
+  const campLocations: RegisterPageData['campLocations'] = (locationsRes.docs as any[]).map((l) => ({
+    id: l.id,
+    name: l.name,
+    address: l.address ?? undefined,
+    city: l.city ?? undefined,
+  }))
+
+  const campTimeslots: RegisterPageData['campTimeslots'] = (timeslotsRes.docs as any[]).map((t) => ({
+    id: t.id,
+    label: t.label,
+  }))
+
+  const campWeeks: RegisterPageData['campWeeks'] = (campWeeksRes.docs as any[]).map((w) => ({
+    id: w.id,
+    label: w.label,
+    startDate: w.startDate ?? undefined,
+    endDate: w.endDate ?? undefined,
+  }))
+
+  const campSessions: RegisterPageData['campSessions'] = (campSessionsRes.docs as any[]).map((s) => ({
+    id: s.id,
+    productId: getId(s.product),
+    productTitle: getTitle(s.product),
+    locationId: getId(s.location),
+    locationName: getName(s.location),
+    timeslotId: getId(s.timeslot),
+    timeslotLabel: getLabel(s.timeslot),
+    campWeekId: getId(s.campWeek),
+    campWeekLabel: getLabel(s.campWeek),
+    price: s.price ?? 225,
+    capacity: s.capacity ?? 20,
+    registeredCount: s.registeredCount ?? 0,
+    status: s.status ?? 'open',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    checkoutFields: ((s.product as any)?.checkoutFields ?? []).map((f: any) => ({
+      label: f.label,
+      fieldType: f.fieldType ?? 'text',
+      required: f.required ?? false,
+    })),
+  }))
+
   // ── Flatten product variations ────────────────────────────────────────────
   const variations: RegisterPageData['variations'] = []
   for (const product of productsRes.docs) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((product as any).productType === 'camp') continue
     for (const v of product.variations ?? []) {
       const cityId = getId(v.city)
       const schoolId = getId(v.school)
@@ -142,6 +200,10 @@ export default async function RegisterPage() {
         variations={variations}
         gstSettings={gstSettings}
         termsContent={termsContent}
+        campLocations={campLocations}
+        campTimeslots={campTimeslots}
+        campWeeks={campWeeks}
+        campSessions={campSessions}
       />
     </Suspense>
   )
