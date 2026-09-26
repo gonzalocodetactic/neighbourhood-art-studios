@@ -46,3 +46,6 @@ payload.db-shm
 payload.db-wal
 payload-types.ts
 /src/app/(payload)/admin/importMap.js
+
+# local data exports (contain customer PII)
+/data/

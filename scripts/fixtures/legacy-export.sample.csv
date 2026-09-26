@@ -1,0 +1,4 @@
+Order ID,Order Date,Order Status,Order Total,Tax,P/G F/N,P/G L/N,P/G Email,Phone,SFN #1,SLN #1,Grade #1,Gender #1,SFN #2,SLN #2,Grade #2,Gender #2,School,Season,Product,Order Notes,Customer Note
+10421,2025-09-02 14:31:00,wc-completed,378.00,18.00,Jane,Example,JANE@example.com,604-555-0101,Ava,Example,Grade 3,F,Leo,Example,Grade 1,M,Sample Elementary,Fall 2025,After School Art,"Paid by cheque, ""late"" fee waived",Ava has a nut allergy
+10422,2025-09-03 09:12:00,refunded,180.00,,Sam,Placeholder,sam@example.com,604-555-0102,Mia,,Grade 5,,,,,,Sample Elementary,Fall 2025,,,
+10423,2025-09-04 11:00:00,processing,,,Pat,,pat@example.com,,,,,,,,,,,,,,

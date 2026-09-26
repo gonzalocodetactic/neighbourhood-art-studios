@@ -5,7 +5,7 @@ export const Registrations: CollectionConfig = {
   admin: {
     group: 'Main',
     useAsTitle: 'parentFirstName',
-    defaultColumns: ['id', 'parentFirstName', 'parentLastName', 'parentEmail', 'product', 'studentCount', 'totalAmount', 'paymentStatus', 'attendanceStatus', 'createdAt', 'monerisOrderId'],
+    defaultColumns: ['id', 'parentFirstName', 'parentLastName', 'parentEmail', 'product', 'studentCount', 'totalAmount', 'paymentStatus', 'orderStatus', 'attendanceStatus', 'createdAt', 'monerisOrderId'],
   },
   hooks: {
     afterChange: [
@@ -383,6 +383,50 @@ export const Registrations: CollectionConfig = {
             { label: 'Attended', value: 'attended' },
             { label: 'No Show', value: 'no-show' },
             { label: 'Cancelled', value: 'cancelled' },
+          ],
+        },
+        {
+          name: 'orderStatus',
+          type: 'select',
+          defaultValue: 'completed',
+          options: [
+            { label: 'Pending', value: 'pending' },
+            { label: 'Processing', value: 'processing' },
+            { label: 'Completed', value: 'completed' },
+            { label: 'Cancelled', value: 'cancelled' },
+            { label: 'Refunded', value: 'refunded' },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'notes',
+      type: 'array',
+      label: 'Order Notes',
+      fields: [
+        {
+          name: 'note',
+          type: 'textarea',
+          required: true,
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'timestamp',
+              type: 'date',
+              admin: { date: { pickerAppearance: 'dayAndTime' } },
+            },
+            {
+              name: 'type',
+              type: 'select',
+              defaultValue: 'system',
+              options: [
+                { label: 'System', value: 'system' },
+                { label: 'Payment', value: 'payment' },
+                { label: 'Admin', value: 'admin' },
+              ],
+            },
           ],
         },
       ],

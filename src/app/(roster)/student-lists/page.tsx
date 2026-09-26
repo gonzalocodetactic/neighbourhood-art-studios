@@ -32,7 +32,13 @@ export default async function StudentListsPage() {
       collection: 'registrations',
       limit: 5000,
       depth: 2, // school → city, season, product populated
-      where: { attendanceStatus: { not_in: ['cancelled'] } },
+      where: {
+        and: [
+          { attendanceStatus: { not_in: ['cancelled'] } },
+          // orderStatus is null on rows created before the field existed
+          { or: [{ orderStatus: { exists: false } }, { orderStatus: { not_in: ['cancelled', 'refunded'] } }] },
+        ],
+      },
       sort: 'createdAt',
     }),
     payload.find({
