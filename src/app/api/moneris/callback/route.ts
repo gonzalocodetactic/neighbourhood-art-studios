@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       await payload.update({
         collection: 'registrations',
         id: found.docs[0].id,
-        data: { paymentStatus: 'paid' } as any,
+        data: { paymentStatus: 'paid', orderStatus: 'processing' } as any,
       })
 
       // Send order confirmation email (fire-and-forget)

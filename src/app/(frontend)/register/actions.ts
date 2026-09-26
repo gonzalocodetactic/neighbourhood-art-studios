@@ -186,7 +186,7 @@ export async function initiateMonerisCheckout(
       await payload.update({
         collection: 'registrations',
         id: registrationId,
-        data: { paymentStatus: 'paid', monerisOrderId: orderNo } as any,
+        data: { paymentStatus: 'paid', orderStatus: 'processing', monerisOrderId: orderNo } as any,
       })
 
       // Fetch full registration for email and parent linking
@@ -359,6 +359,7 @@ export async function submitRegistration(
         gstAmount,
         totalAmount,
         paymentStatus: 'pending',
+        orderStatus: 'pending',
         attendanceStatus: 'enrolled',
         ...(data.classDate ? { classDate: data.classDate } : {}),
       } as any,
@@ -446,6 +447,7 @@ export async function submitCampRegistration(
         gstAmount,
         totalAmount,
         paymentStatus:    'pending',
+        orderStatus:      'pending',
         attendanceStatus: 'enrolled',
         checkoutAnswers:  data.checkoutAnswers,
       } as any,

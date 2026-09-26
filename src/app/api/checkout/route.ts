@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
         gstAmount,
         totalAmount,
         paymentStatus: 'pending',
+        orderStatus: 'pending',
         attendanceStatus: 'enrolled',
       } as any,
     }) as any
