@@ -20,6 +20,11 @@ export type RosterRow = {
   school: string
   schoolCity: string
   season: string
+  product: string
+  /** Camp venue from the registration's product variation; blank for in-school */
+  campLocation: string
+  /** Not a column — drives the camp tabs */
+  productType: string
   divisionNumber: string
   teacherName: string
   scheduleDate: string
@@ -28,7 +33,7 @@ export type RosterRow = {
   active: boolean
 }
 
-type ColumnKey = Exclude<keyof RosterRow, 'active'>
+type ColumnKey = Exclude<keyof RosterRow, 'active' | 'productType'>
 
 const TABS = [
   'Surrey Schools',
@@ -36,6 +41,7 @@ const TABS = [
   'Richmond Schools',
   'Vancouver Schools',
   'Delta Schools',
+  'Langley Schools',
   'Summer Camps',
   'Spring Break Camps',
 ] as const
@@ -58,17 +64,21 @@ const COLUMNS: { key: ColumnKey; label: string; minW?: string }[] = [
   { key: 'gender',           label: 'Gender',         minW: 'min-w-[90px]' },
   { key: 'school',           label: 'School',         minW: 'min-w-[160px]' },
   { key: 'season',           label: 'Season',         minW: 'min-w-[100px]' },
+  { key: 'product',          label: 'Product',        minW: 'min-w-[160px]' },
+  { key: 'campLocation',     label: 'Location',       minW: 'min-w-[140px]' },
   { key: 'divisionNumber',   label: 'Div #',          minW: 'min-w-[70px]' },
   { key: 'teacherName',      label: 'T. Name',        minW: 'min-w-[110px]' },
   { key: 'scheduleDate',     label: 'Date',           minW: 'min-w-[140px]' },
 ]
 
+// Camp tabs take camp products only; the season picks summer vs spring break, so
+// in-school spring sessions stay on their city tab
 function filterByTab(rows: RosterRow[], tab: Tab): RosterRow[] {
   if (tab === 'Summer Camps') {
-    return rows.filter((r) => r.season.toLowerCase().includes('summer'))
+    return rows.filter((r) => r.productType === 'camp' && r.season.toLowerCase().includes('summer'))
   }
   if (tab === 'Spring Break Camps') {
-    return rows.filter((r) => r.season.toLowerCase().includes('spring'))
+    return rows.filter((r) => r.productType === 'camp' && r.season.toLowerCase().includes('spring'))
   }
   return rows.filter((r) => r.schoolCity === tab)
 }

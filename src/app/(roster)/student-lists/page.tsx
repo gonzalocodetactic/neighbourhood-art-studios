@@ -48,11 +48,15 @@ export default async function StudentListsPage() {
     }),
   ])
 
-  // Build product variation lookup: productId → "schoolId-seasonId" → schedule string
+  // Build product variation lookup: productId → "schoolId-seasonId" → schedule string,
+  // plus variation ID → camp location name
   const scheduleMap = new Map<string, Map<string, string>>()
+  const campLocationMap = new Map<string, string>()
   for (const product of productsRes.docs) {
     const inner = new Map<string, string>()
     for (const v of (product.variations ?? []) as Record<string, unknown>[]) {
+      const location = v.location as Record<string, unknown> | null | undefined
+      if (v.id && location && typeof location === 'object') campLocationMap.set(String(v.id), String(location.name ?? ''))
       const schoolId = getId(v.school)
       const seasonId = getId(v.season)
       const parts = [v.dayOfWeek, v.timeSlot].filter(Boolean)
@@ -74,6 +78,9 @@ export default async function StudentListsPage() {
       ? getTitle((reg.school as Record<string, unknown>).city)
       : ''
     const seasonTitle = getTitle(reg.season)
+    const productTitle = getTitle(reg.product)
+    const productType = reg.product && typeof reg.product === 'object' ? reg.product.productType ?? '' : ''
+    const campLocation = campLocationMap.get(String(r0.campVariationId ?? '')) ?? ''
     const productId   = getId(reg.product)
     const schoolId    = getId(reg.school)
     const seasonId    = getId(reg.season)
@@ -106,6 +113,9 @@ export default async function StudentListsPage() {
         school:           schoolTitle,
         schoolCity:       cityTitle,
         season:           seasonTitle,
+        product:          productTitle,
+        campLocation,
+        productType,
         // Per-student values first; registration-level fields cover older rows
         divisionNumber:   String(student.divisionNumber || r0.divisionNumber || ''),
         teacherName:      String(student.teacherName    || r0.teacherName    || ''),
