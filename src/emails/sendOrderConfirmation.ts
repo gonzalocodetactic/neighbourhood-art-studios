@@ -39,6 +39,18 @@ export type RegistrationData = {
   totalAmount: number
 }
 
+/** Contact summary at the top of the admin notification: parent full name, phone, email. */
+export function buildAdminContactRows(
+  reg: Pick<RegistrationData, 'parentFirstName' | 'parentLastName' | 'parentPhone' | 'parentEmail'>,
+): Array<{ label: string; value: string; section?: true }> {
+  return [
+    { label: 'Contact', value: '', section: true },
+    { label: 'Parent Name', value: `${reg.parentFirstName} ${reg.parentLastName}`.trim() },
+    { label: 'Phone', value: reg.parentPhone },
+    { label: 'Email', value: reg.parentEmail },
+  ]
+}
+
 const label = (v: unknown, key: string): string =>
   v && typeof v === 'object' ? String((v as Record<string, unknown>)[key] ?? '') : ''
 
@@ -177,11 +189,7 @@ export async function sendOrderConfirmation(payload: Payload, reg: RegistrationD
       .filter(Boolean)
       .join(' ')
 
-    const rows: Array<{ label: string; value: string; section?: true }> = [
-      { label: 'Parent', value: parentName, section: true },
-      { label: 'Email', value: reg.parentEmail },
-      { label: 'Phone', value: reg.parentPhone },
-    ]
+    const rows: Array<{ label: string; value: string; section?: true }> = buildAdminContactRows(reg)
 
     if (ecName || reg.emergencyContactPhone || reg.emergencyContactEmail) {
       rows.push({ label: 'Emergency Contact', value: ecName || '—', section: true })

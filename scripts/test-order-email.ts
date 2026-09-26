@@ -6,8 +6,8 @@
  */
 import { getPayload } from 'payload'
 import config from '../payload.config'
-import { toEmailRegistration } from '../src/emails/sendOrderConfirmation'
-import { buildOrderConfirmationHtml } from '../src/emails/templates'
+import { buildAdminContactRows, toEmailRegistration } from '../src/emails/sendOrderConfirmation'
+import { buildAdminNotificationHtml, buildOrderConfirmationHtml } from '../src/emails/templates'
 
 function assert(cond: unknown, msg: string) {
   if (!cond) { console.error(`❌ ${msg}`); process.exit(1) }
@@ -80,6 +80,16 @@ async function main() {
   } finally {
     await payload.delete({ collection: 'registrations', id: created.id }).catch(() => {})
   }
+  // ── Admin notification: parent name / phone / email ─────────────────────────
+  const adminHtml = buildAdminNotificationHtml({
+    title: 'New Registration',
+    rows: buildAdminContactRows({ parentFirstName: 'Jane', parentLastName: "O'Doe", parentPhone: '604-555-0100', parentEmail: 'jane@example.com' }),
+  })
+  assert(adminHtml.includes('Parent Name') && adminHtml.includes('Jane O&#39;Doe') || adminHtml.includes("Jane O'Doe"), 'admin: full parent name rendered')
+  assert(adminHtml.includes('>Phone<') && adminHtml.includes('604-555-0100') && adminHtml.includes('>Email<') && adminHtml.includes('jane@example.com'), 'admin: phone + email rendered')
+  const labels = buildAdminContactRows({ parentFirstName: 'A', parentLastName: 'B', parentPhone: '1', parentEmail: 'e' }).map((r) => r.label)
+  assert(labels.join('|') === 'Contact|Parent Name|Phone|Email', 'admin: contact rows ordered Parent Name, Phone, Email')
+
   console.log('✅ Order email checks passed')
   process.exit(0)
 }
