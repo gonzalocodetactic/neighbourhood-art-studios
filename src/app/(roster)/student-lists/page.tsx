@@ -99,9 +99,10 @@ export default async function StudentListsPage() {
         school:           schoolTitle,
         schoolCity:       cityTitle,
         season:           seasonTitle,
-        divisionNumber:   r0.divisionNumber ?? '',
-        teacherName:      r0.teacherName    ?? '',
-        scheduleDate,
+        // Per-student values first; registration-level fields cover older rows
+        divisionNumber:   String(student.divisionNumber || r0.divisionNumber || ''),
+        teacherName:      String(student.teacherName    || r0.teacherName    || ''),
+        scheduleDate:     String(student.classDate      || r0.classDate      || scheduleDate),
       })
     })
   }

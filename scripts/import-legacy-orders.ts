@@ -16,15 +16,18 @@
  *   E/C Name, E/C Phone              → emergency contact (registration + student #1)
  *   S FN #1, S LN #1, Age #1         → students[0]
  *   Gender #2  (1st occurrence)      → students[0].gender  (mislabelled in the export)
- *   Student First/Last Name #2, Student Age #2, Teacher Name #2,
+ *   Student First/Last Name #2, Student Age #2,
  *   Emergency Contact Name/Phone #2  → students[1]
+ *   Teacher Name #n, Division #n, Class Date #n
+ *                                    → students[n-1].teacherName / divisionNumber / classDate,
+ *                                      falling back to Teacher Name, Division #, Class Date
  *   Order Tax, Order Total           → gstAmount, unitPrice = (total − tax) / students
  *   Order Status                     → orderStatus + paymentStatus
  *   Order Date                       → createdAt
  *   Product Name "Title (City)"      → product (+ city used to disambiguate schools)
  *   Season / Variation Attributes    → season + school, matched by slugified title
  *   Location, Schedule/Time, Weeks Selected → campVariationId (camp products)
- *   Class Date                       → classDate
+ *   Class Date                       → classDate (order level, used in confirmations)
  *   Order Note - Most Recent, Notes? → notes[]
  */
 import fs from 'fs'
@@ -46,6 +49,8 @@ type Student = {
   emergencyContactName?: string
   emergencyContactPhone?: string
   teacherName?: string
+  divisionNumber?: string
+  classDate?: string
 }
 
 type Note = { note: string; timestamp?: string; type: NoteType }
@@ -185,6 +190,18 @@ function toIso(raw: string): string | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString()
 }
 
+/** Teacher / division / class date for student n, falling back to the order-level columns. */
+function perStudent(row: Row, n: number): Pick<Student, 'teacherName' | 'divisionNumber' | 'classDate'> {
+  const teacherName = get(row, `Teacher Name #${n}`, 'Teacher Name')
+  const divisionNumber = get(row, `Division #${n}`, 'Division #')
+  const classDate = get(row, `Class Date #${n}`, 'Class Date')
+  return {
+    ...(teacherName ? { teacherName } : {}),
+    ...(divisionNumber ? { divisionNumber } : {}),
+    ...(classDate ? { classDate } : {}),
+  }
+}
+
 function mapRow(row: Row): Mapped {
   const warnings: string[] = []
   const orderId = get(row, 'Order ID')
@@ -207,6 +224,7 @@ function mapRow(row: Row): Mapped {
       gender: mapGender(get(row, 'Gender #1', 'Gender #2')),
       emergencyContactName: ecName || undefined,
       emergencyContactPhone: ecPhone || undefined,
+      ...perStudent(row, 1),
     })
   }
   const s2First = get(row, 'Student First Name #2', 'S FN #2', 'SFN #2')
@@ -218,7 +236,7 @@ function mapRow(row: Row): Mapped {
       age: get(row, 'Student Age #2', 'Age #2') || undefined,
       emergencyContactName: get(row, 'Emergency Contact Name #2') || undefined,
       emergencyContactPhone: get(row, 'Emergency Contact Phone #2') || undefined,
-      teacherName: get(row, 'Teacher Name #2') || undefined,
+      ...perStudent(row, 2),
     })
   }
 

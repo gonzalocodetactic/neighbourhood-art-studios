@@ -200,6 +200,12 @@ export const Registrations: CollectionConfig = {
           label: 'Division Number',
           admin: { placeholder: 'e.g. Div. 4' },
         },
+        {
+          name: 'classDate',
+          type: 'text',
+          label: 'Class Date',
+          admin: { placeholder: 'e.g. Oct 13 – Dec 15' },
+        },
       ],
     },
     {
