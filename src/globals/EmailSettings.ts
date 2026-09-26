@@ -1,7 +1,10 @@
 import type { GlobalConfig } from 'payload'
+import { superAdmin } from '../access'
 
 export const EmailSettings: GlobalConfig = {
   slug: 'email-settings',
+  // SMTP credentials — super admins only (mailers read via the Local API)
+  access: { read: superAdmin, update: superAdmin },
   label: 'Email Settings',
   admin: { group: 'Settings' },
   fields: [

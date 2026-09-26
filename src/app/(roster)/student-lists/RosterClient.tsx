@@ -5,6 +5,7 @@ import { logoutFromRoster } from './actions'
 
 export type RosterRow = {
   regId: string
+  orderId: string
   studentIndex: string
   parentFirstName: string
   parentLastName: string
@@ -38,6 +39,7 @@ type Tab = (typeof TABS)[number]
 
 const COLUMNS: { key: keyof RosterRow; label: string; minW?: string }[] = [
   { key: 'regId',            label: 'ID',             minW: 'min-w-[60px]' },
+  { key: 'orderId',          label: 'Order #',        minW: 'min-w-[80px]' },
   { key: 'studentIndex',     label: 'Stu #',          minW: 'min-w-[60px]' },
   { key: 'parentFirstName',  label: 'P/G FN #1',      minW: 'min-w-[100px]' },
   { key: 'parentLastName',   label: 'P/G LN #1',      minW: 'min-w-[100px]' },
@@ -67,8 +69,12 @@ function filterByTab(rows: RosterRow[], tab: Tab): RosterRow[] {
 }
 
 function applySearch(rows: RosterRow[], query: string): RosterRow[] {
-  if (!query.trim()) return rows
-  const q = query.toLowerCase()
+  const trimmed = query.trim()
+  if (!trimmed) return rows
+  // "#63385" → exact legacy order match; otherwise substring match across all columns
+  const orderMatch = trimmed.match(/^#\s*(\d+)$/)
+  if (orderMatch) return rows.filter((row) => row.orderId === orderMatch[1])
+  const q = trimmed.toLowerCase()
   return rows.filter((row) =>
     COLUMNS.some((c) => row[c.key].toLowerCase().includes(q)),
   )
@@ -284,7 +290,7 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter all columns…"
+            placeholder="Filter all columns or #order…"
             className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#3B4BC8] w-56"
           />
           {search && (

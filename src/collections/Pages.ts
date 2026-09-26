@@ -8,6 +8,7 @@ import { AccordionBlock } from '../blocks/AccordionBlock'
 import { ImageGridBlock } from '../blocks/ImageGridBlock'
 import { LightboxGalleryBlock } from '../blocks/LightboxGalleryBlock'
 import { OrderSummaryBlock } from '../blocks/OrderSummaryBlock'
+import { staffCrud } from '../access'
 
 // ── Blocks ────────────────────────────────────────────────────────────────────
 
@@ -135,6 +136,7 @@ const FooterCtaBlock: Block = {
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
+  access: staffCrud,
   admin: {
     group: 'System / Users',
     useAsTitle: 'title',

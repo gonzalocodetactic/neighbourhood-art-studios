@@ -1,7 +1,10 @@
 import type { GlobalConfig } from 'payload'
+import { superAdmin } from '../access'
 
 export const PaymentSettings: GlobalConfig = {
   slug: 'payment-settings',
+  // Moneris credentials — super admins only (checkout reads via the Local API)
+  access: { read: superAdmin, update: superAdmin },
   label: 'Payment Settings',
   admin: {
     group: 'Settings',

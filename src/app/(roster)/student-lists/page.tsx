@@ -1,6 +1,7 @@
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
+import { isStaff } from '@/access'
 import PasswordGate from './PasswordGate'
 import RosterClient, { type RosterRow } from './RosterClient'
 
@@ -18,14 +19,16 @@ function getTitle(val: unknown): string {
 
 export default async function StudentListsPage() {
   // ── Auth check ─────────────────────────────────────────────────────────────
+  // Signed-in admins (either role) get straight in; others use the shared roster password
+  const payload = await getPayload({ config: configPromise })
+  const { user } = await payload.auth({ headers: await headers() })
   const store = await cookies()
   const expected = process.env.ROSTER_PASSWORD ?? 'art-studios'
-  const isAuthed = store.get('roster_auth')?.value === expected
+  const isAuthed = isStaff(user) || store.get('roster_auth')?.value === expected
 
   if (!isAuthed) return <PasswordGate />
 
   // ── Data fetch ─────────────────────────────────────────────────────────────
-  const payload = await getPayload({ config: configPromise })
 
   const [regsRes, productsRes] = await Promise.all([
     payload.find({
@@ -85,6 +88,7 @@ export default async function StudentListsPage() {
     ;((reg.students ?? []) as Record<string, unknown>[]).forEach((student, idx) => {
       rows.push({
         regId:           String(reg.id),
+        orderId:         String(r0.legacyWooOrderId ?? ''),
         studentIndex:    String(idx + 1),
         parentFirstName: parentFirst,
         parentLastName:  parentLast,

@@ -16,6 +16,7 @@ import { Registrations } from './src/collections/Registrations'
 import { Schools } from './src/collections/Schools'
 import { Seasons } from './src/collections/Seasons'
 import { Timeslots } from './src/collections/Timeslots'
+import { Users } from './src/collections/Users'
 import { Waitlist } from './src/collections/Waitlist'
 import { EmailSettings } from './src/globals/EmailSettings'
 import { PaymentSettings } from './src/globals/PaymentSettings'
@@ -62,12 +63,7 @@ export default buildConfig({
     },
   },
   collections: [
-    {
-      slug: 'users',
-      auth: true,
-      admin: { group: 'System / Users' },
-      fields: [],
-    },
+    Users,
     Media,
     Pages,
     Cities,

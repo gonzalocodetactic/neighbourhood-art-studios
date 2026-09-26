@@ -1,7 +1,15 @@
 import type { CollectionConfig } from 'payload'
+import { staff, staffOrSelf } from '../access'
 
 export const Parents: CollectionConfig = {
   slug: 'parents',
+  // Parents can read/update their own record (account page uses the REST API)
+  access: {
+    read: staffOrSelf('parents'),
+    update: staffOrSelf('parents'),
+    create: staff,
+    delete: staff,
+  },
   auth: true,
   admin: {
     group: 'Main',

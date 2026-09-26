@@ -1,7 +1,9 @@
 import type { CollectionConfig } from 'payload'
+import { staffCrud } from '../access'
 
 export const Forms: CollectionConfig = {
   slug: 'forms',
+  access: staffCrud,
   admin: { useAsTitle: 'title', group: 'Settings' },
   fields: [
     { name: 'title', type: 'text', required: true },

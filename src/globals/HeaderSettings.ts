@@ -1,7 +1,9 @@
 import type { GlobalConfig } from 'payload'
+import { staff } from '../access'
 
 export const HeaderSettings: GlobalConfig = {
   slug: 'header-settings',
+  access: { read: staff, update: staff },
   label: 'Header Settings',
   admin: { group: 'Settings' },
   fields: [

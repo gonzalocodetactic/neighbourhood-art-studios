@@ -1,7 +1,9 @@
 import type { CollectionConfig } from 'payload'
+import { staffCrud } from '../access'
 
 export const Products: CollectionConfig = {
   slug: 'products',
+  access: staffCrud,
   admin: {
     useAsTitle: 'title',
     group: 'Main',

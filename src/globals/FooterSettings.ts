@@ -1,7 +1,9 @@
 import type { GlobalConfig } from 'payload'
+import { staff } from '../access'
 
 export const FooterSettings: GlobalConfig = {
   slug: 'footer-settings',
+  access: { read: staff, update: staff },
   label: 'Footer Settings',
   admin: { group: 'Settings' },
   fields: [
