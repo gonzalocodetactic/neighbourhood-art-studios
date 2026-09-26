@@ -131,7 +131,7 @@ function toTSV(rows: RosterRow[]): string {
   return [header, ...lines].join('\n')
 }
 
-function toCSV(rows: RosterRow[], tabName: string): string {
+function toCSV(rows: RosterRow[]): string {
   const header = COLUMNS.map((c) => c.label).join(',')
   const lines = rows.map((row) =>
     COLUMNS.map((c) => {
@@ -195,7 +195,7 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
   }
 
   function handleExport() {
-    const csv = toCSV(filtered, activeTab)
+    const csv = toCSV(filtered)
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

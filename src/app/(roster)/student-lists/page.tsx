@@ -75,7 +75,7 @@ export default async function StudentListsPage() {
     const parentLast  = r0.parentLastName  ?? ''
     const schoolTitle = getTitle(reg.school)
     const cityTitle   = reg.school && typeof reg.school === 'object'
-      ? getTitle((reg.school as Record<string, unknown>).city)
+      ? getTitle(reg.school.city)
       : ''
     const seasonTitle = getTitle(reg.season)
     const productTitle = getTitle(reg.product)
