@@ -14,6 +14,7 @@
  *   Order ID                         → legacyWooOrderId
  *   Moneris Transaction ID           → monerisOrderId
  *   P/G F/N, P/G LN, P/G Email, Phone→ parent fields (+ parent link if an account exists);
+ *                                      repeated / trailing dots in an email ("gmail..com") are fixed;
  *                                      an invalid email gets a placeholder and is kept in notes
  *   E/C Name, E/C Phone              → emergency contact (registration + student #1)
  *   S FN #1, S LN #1, Age #1         → students[0]
@@ -27,9 +28,15 @@
  *   Order Tax, Order Total           → gstAmount, unitPrice = (total − tax) / students
  *   Order Status                     → orderStatus + paymentStatus
  *   Order Date                       → createdAt
- *   Product Name "Title (City)"      → product (+ city used to disambiguate schools)
- *   Season / Variation Attributes    → season + school, matched by slugified title
- *   Location, Schedule/Time, Weeks Selected → campVariationId (camp products)
+ *   Product Name "Title (City)"      → product (+ city used to disambiguate schools), via
+ *                                      PRODUCT_ALIASES; a title that still doesn't match is
+ *                                      auto-created as a bare product (no variations)
+ *   Season / Variation Attributes    → season + school, matched by slugified title; season
+ *                                      falls back to one named in the product title
+ *                                      ("Spring Art Camps 2026" → Spring 2026)
+ *   Location, Schedule/Time, Weeks Selected → campVariationId (camp products); every label
+ *                                      given must match, otherwise the order is imported
+ *                                      unattributed with the legacy labels kept in notes
  *   student #1's class date          → classDate (order level, used in confirmations)
  *   Order Note - Most Recent, Notes? → notes[]
  */
@@ -80,6 +87,8 @@ type Mapped = {
   }
   lookup: {
     productTitle: string
+    /** Product title as it appears in the export, before aliasing */
+    legacyProductTitle: string
     city?: string
     seasonSlug?: string
     attributeSlugs: string[]
@@ -149,7 +158,14 @@ const slugify = (s: string) =>
   s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const looksLikePhone = (s: string) => /^[+\d\s().-]{7,}$/.test(s)
-const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
+const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) && !s.includes('..') && !s.endsWith('.')
+
+/** Legacy product title (lowercase, city suffix removed) → current product title */
+const PRODUCT_ALIASES: Record<string, string> = {
+  // Spring in-school sessions were sold as a separate WooCommerce product; they're
+  // now the spring season of the in-school product (school + spring-2026 attributes)
+  'spring art sessions': 'Art Classes At Your School',
+}
 
 function splitName(full: string): { first?: string; last?: string } {
   const parts = full.trim().split(/\s+/)
@@ -232,7 +248,9 @@ function mapRow(row: Row): Mapped {
 
   // Some rows have a name in the email column; keep the original in notes and use a
   // placeholder on the reserved .invalid TLD so nothing is ever sent to it
-  const emailRaw = get(row, 'P/G Email')
+  const emailOriginal = get(row, 'P/G Email')
+  const emailRaw = emailOriginal.replace(/\.{2,}/g, '.').replace(/\.+$/, '')
+  if (emailRaw !== emailOriginal) warnings.push(`P/G Email "${emailOriginal}" → "${emailRaw}"`)
   const parentEmail = isEmail(emailRaw) ? emailRaw.toLowerCase() : `legacy-order-${orderId}@no-email.invalid`
 
   // Emergency contact — the legacy form sometimes got a phone number in the name field
@@ -301,6 +319,7 @@ function mapRow(row: Row): Mapped {
 
   const productName = get(row, 'Product Name', 'Product')
   const cityMatch = productName.match(/\(([^)]+)\)\s*$/)
+  const legacyProductTitle = cityMatch ? productName.slice(0, cityMatch.index).trim() : productName
   const attributeSlugs = get(row, 'Variation Attributes').split(',').map((s) => slugify(s)).filter(Boolean)
 
   return {
@@ -323,7 +342,8 @@ function mapRow(row: Row): Mapped {
       notes,
     },
     lookup: {
-      productTitle: cityMatch ? productName.slice(0, cityMatch.index).trim() : productName,
+      productTitle: PRODUCT_ALIASES[legacyProductTitle.toLowerCase()] ?? legacyProductTitle,
+      legacyProductTitle,
       city: cityMatch?.[1],
       seasonSlug: slugify(get(row, 'Season')) || undefined,
       attributeSlugs,
@@ -371,17 +391,38 @@ async function buildResolver(payload: Payload) {
     all('schools'), all('seasons'), all('products'), all('cities'), all('locations'), all('timeslots'), all('camp-weeks'),
   ])
   const relId = (v: unknown): Id | undefined => (v && typeof v === 'object' ? (v as AnyDoc).id : (v as Id | undefined))
+  const findProduct = (title: string) => products.find((p) => String(p.title).toLowerCase() === title.toLowerCase())
 
-  return (m: Mapped) => {
+  /**
+   * Creates a bare product (no variations) for each title that doesn't exist yet, so its
+   * orders import instead of failing. Returns the titles it created (or would create).
+   */
+  const ensureProducts = async (mapped: Mapped[], dryRun: boolean) => {
+    const missing = new Map<string, Mapped['lookup']>()
+    for (const { lookup } of mapped) {
+      if (lookup.productTitle && !findProduct(lookup.productTitle)) missing.set(lookup.productTitle, lookup)
+    }
+    for (const [title, lookup] of missing) {
+      const productType = lookup.location || lookup.week || /camp/i.test(title) ? 'camp' : 'in-school'
+      if (dryRun) products.push({ id: `(new: ${title})`, title, variations: [] })
+      else products.push(await payload.create({ collection: 'products', data: { title, productType } }) as AnyDoc)
+      console.log(`${dryRun ? '+ would create' : '+ created'} ${productType} product "${title}"`)
+    }
+    return [...missing.keys()]
+  }
+
+  const resolve = (m: Mapped) => {
     const errors: string[] = []
     const { lookup } = m
 
-    const productTitle = lookup.productTitle.toLowerCase()
-    const product = products.find((p) => String(p.title).toLowerCase() === productTitle)
+    const product = findProduct(lookup.productTitle)
     if (!product) errors.push(`product "${lookup.productTitle}" not found`)
 
+    // Camp exports leave Season blank; fall back to a season named in the product title
     const seasonSlugs = [lookup.seasonSlug, ...lookup.attributeSlugs].filter(Boolean)
+    const titleWords = slugify(lookup.legacyProductTitle).split('-')
     const season = seasons.find((s) => seasonSlugs.includes(slugify(s.title)))
+      ?? seasons.find((s) => slugify(s.title).split('-').every((w) => titleWords.includes(w)))
 
     // School slug comes from Variation Attributes; narrow by the city in the product name
     const city = lookup.city
@@ -393,29 +434,42 @@ async function buildResolver(payload: Payload) {
       : schoolCandidates[0]
 
     // Camp attribution: match the product variation by location / timeslot / week labels
+    // Camp attribution: match the product variation by location / timeslot / week labels.
+    // A label that is present but unknown must not match loosely, or the order lands on
+    // an arbitrary variation; it's imported unattributed instead.
+    const warnings: string[] = []
+    const notes: Note[] = []
     let campVariationId: string | undefined
     if (product && (lookup.location || lookup.week)) {
       const byLabel = (docs: AnyDoc[], field: string, label?: string) =>
-        label ? docs.find((d) => slugify(String(d[field])) === slugify(label))?.id : undefined
-      const locationId = byLabel(locations, 'name', lookup.location)
-      const timeslotId = byLabel(timeslots, 'label', lookup.timeslot)
-      const weekId = byLabel(weeks, 'label', lookup.week)
-      const variation = ((product.variations ?? []) as AnyDoc[]).find((v) =>
-        (!locationId || relId(v.location) === locationId) &&
-        (!timeslotId || relId(v.timeslot) === timeslotId) &&
-        (!weekId || relId(v.campWeek) === weekId),
-      )
+        docs.find((d) => slugify(String(d[field])) === slugify(label ?? ''))?.id
+      const locationId = lookup.location ? byLabel(locations, 'name', lookup.location) : undefined
+      const timeslotId = lookup.timeslot ? byLabel(timeslots, 'label', lookup.timeslot) : undefined
+      const weekId = lookup.week ? byLabel(weeks, 'label', lookup.week) : undefined
+      const resolved = (!lookup.location || locationId) && (!lookup.timeslot || timeslotId) && (!lookup.week || weekId)
+      const variation = resolved
+        ? ((product.variations ?? []) as AnyDoc[]).find((v) =>
+          (!locationId || relId(v.location) === locationId) &&
+          (!timeslotId || relId(v.timeslot) === timeslotId) &&
+          (!weekId || relId(v.campWeek) === weekId))
+        : undefined
       if (variation) campVariationId = variation.id
-      else errors.push(`no camp variation for location "${lookup.location}" / time "${lookup.timeslot}" / week "${lookup.week}"`)
+      else {
+        const legacy = [lookup.location, lookup.timeslot, lookup.week].filter(Boolean).join(' / ')
+        warnings.push(`no camp variation for "${legacy}" → imported without campVariationId`)
+        notes.push({ note: `Legacy camp selection: ${legacy} (no matching product variation).`, type: 'admin' })
+      }
     }
 
-    const warnings: string[] = []
     if (!season) warnings.push(`season not found (${seasonSlugs.join(', ')})`)
-    if (!school && !campVariationId) warnings.push(`school not found (${lookup.attributeSlugs.join(', ')})`)
+    if (!school && !campVariationId && !(lookup.location || lookup.week)) {
+      warnings.push(`school not found (${lookup.attributeSlugs.join(', ')})`)
+    }
 
     return {
       errors,
       warnings,
+      notes,
       relations: {
         product: product?.id as Id | undefined,
         season: season?.id as Id | undefined,
@@ -424,6 +478,8 @@ async function buildResolver(payload: Payload) {
       },
     }
   }
+
+  return { resolve, ensureProducts }
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -445,19 +501,20 @@ async function main() {
   }
 
   const payload = await loadPayload()
-  const resolve = await buildResolver(payload)
+  const { resolve, ensureProducts } = await buildResolver(payload)
+  const mappedRows = rows.map(mapRow)
+  await ensureProducts(mappedRows.filter((m) => validate(m).length === 0), dryRun)
 
   let created = 0
   let skipped = 0
   let failed = 0
   const preview: AnyDoc[] = []
 
-  for (const [i, row] of rows.entries()) {
-    const m = mapRow(row)
+  for (const [i, m] of mappedRows.entries()) {
     const label = `line ${i + 2} #${m.data.legacyWooOrderId || '?'}`
 
     const problems = validate(m)
-    const { errors, warnings, relations } = resolve(m)
+    const { errors, warnings, notes, relations } = resolve(m)
     for (const w of [...m.warnings, ...warnings]) console.warn(`  ⚠ ${label}: ${w}`)
     if (problems.length || errors.length) {
       console.error(`✗ ${label}: ${[...problems, ...errors].join('; ')}`)
@@ -484,7 +541,7 @@ async function main() {
       depth: 0,
     })
 
-    const data = { ...m.data, ...relations, ...(parent.docs[0] ? { parent: parent.docs[0].id } : {}) }
+    const data = { ...m.data, notes: [...m.data.notes, ...notes], ...relations, ...(parent.docs[0] ? { parent: parent.docs[0].id } : {}) }
     if (dryRun) {
       preview.push(data)
       continue
