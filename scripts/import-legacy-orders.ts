@@ -39,7 +39,7 @@ import path from 'path'
 type Row = Record<string, string>
 type Id = string | number
 
-type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled' | 'refunded'
+type OrderStatus = 'pending' | 'processing' | 'completed' | 'on_hold' | 'cancelled' | 'refunded' | 'failed'
 type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'waived'
 type NoteType = 'system' | 'payment' | 'admin'
 type Gender = 'Male' | 'Female' | 'Rather Not Say'
@@ -157,13 +157,26 @@ function splitName(full: string): { first?: string; last?: string } {
   return { first: parts[0], last: parts.slice(1).join(' ') || undefined }
 }
 
-function mapOrderStatus(raw: string): OrderStatus {
-  const v = raw.toLowerCase().replace(/^wc-/, '').trim()
-  if (v === 'pending' || v === 'on-hold' || v === 'pending payment') return 'pending'
-  if (v === 'processing') return 'processing'
-  if (v === 'cancelled' || v === 'failed') return 'cancelled'
-  if (v === 'refunded') return 'refunded'
-  return 'completed'
+/** WooCommerce status label → orderStatus. Keys are normalised by normStatus(). */
+const ORDER_STATUS_MAP: Record<string, OrderStatus> = {
+  'processing': 'processing',
+  'completed': 'completed',
+  'pending payment': 'pending',
+  'pending': 'pending',
+  'draft': 'pending',
+  'checkout draft': 'pending',
+  'on hold': 'on_hold',
+  'cancelled': 'cancelled',
+  'refunded': 'refunded',
+  'failed': 'failed',
+}
+
+// "  On-Hold ", "wc-on-hold", "ON_HOLD" → "on hold"
+const normStatus = (raw: string) =>
+  raw.trim().toLowerCase().replace(/^wc-/, '').replace(/[-_\s]+/g, ' ').trim()
+
+function mapOrderStatus(raw: string): OrderStatus | undefined {
+  return ORDER_STATUS_MAP[normStatus(raw)]
 }
 
 function paymentStatusFor(status: OrderStatus): PaymentStatus {
@@ -255,7 +268,11 @@ function mapRow(row: Row): Mapped {
     })
   }
 
-  const orderStatus = mapOrderStatus(get(row, 'Order Status'))
+  // Unknown statuses fall back to pending so they stay off the roster until reviewed
+  const statusRaw = get(row, 'Order Status')
+  const mappedStatus = mapOrderStatus(statusRaw)
+  if (!mappedStatus) warnings.push(`unrecognised Order Status "${statusRaw}" → pending`)
+  const orderStatus = mappedStatus ?? 'pending'
 
   const notes: Note[] = [
     { note: `Imported from legacy WooCommerce export (order #${orderId}).`, timestamp: new Date().toISOString(), type: 'system' },

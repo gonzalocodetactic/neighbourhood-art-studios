@@ -17,6 +17,8 @@ function getTitle(val: unknown): string {
   return ''
 }
 
+const ACTIVE_ORDER_STATUSES = ['processing', 'completed']
+
 export default async function StudentListsPage() {
   // ── Auth check ─────────────────────────────────────────────────────────────
   // Signed-in admins (either role) get straight in; others use the shared roster password
@@ -35,13 +37,8 @@ export default async function StudentListsPage() {
       collection: 'registrations',
       limit: 5000,
       depth: 2, // school → city, season, product populated
-      where: {
-        and: [
-          { attendanceStatus: { not_in: ['cancelled'] } },
-          // orderStatus is null on rows created before the field existed
-          { or: [{ orderStatus: { exists: false } }, { orderStatus: { not_in: ['cancelled', 'refunded'] } }] },
-        ],
-      },
+      // Inactive orders are still fetched so staff can toggle them on in the client
+      where: { attendanceStatus: { not_in: ['cancelled'] } },
       sort: 'createdAt',
     }),
     payload.find({
@@ -84,6 +81,12 @@ export default async function StudentListsPage() {
     const scheduleDate =
       scheduleMap.get(productId)?.get(`${schoolId}-${seasonId}`) ?? ''
 
+    // Active = processing/completed; rows created before orderStatus existed count if paid
+    const orderStatus = String(r0.orderStatus ?? '')
+    const active = orderStatus
+      ? ACTIVE_ORDER_STATUSES.includes(orderStatus)
+      : r0.paymentStatus === 'paid'
+
     // One row per student; studentIndex (1, 2, 3…) keeps siblings grouped under the same regId
     ;((reg.students ?? []) as Record<string, unknown>[]).forEach((student, idx) => {
       rows.push({
@@ -107,6 +110,8 @@ export default async function StudentListsPage() {
         divisionNumber:   String(student.divisionNumber || r0.divisionNumber || ''),
         teacherName:      String(student.teacherName    || r0.teacherName    || ''),
         scheduleDate:     String(student.classDate      || r0.classDate      || scheduleDate),
+        orderStatus:      orderStatus || String(r0.paymentStatus ?? ''),
+        active,
       })
     })
   }

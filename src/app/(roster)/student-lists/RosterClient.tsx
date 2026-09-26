@@ -23,7 +23,12 @@ export type RosterRow = {
   divisionNumber: string
   teacherName: string
   scheduleDate: string
+  orderStatus: string
+  /** processing/completed (or paid, for rows without an orderStatus) */
+  active: boolean
 }
+
+type ColumnKey = Exclude<keyof RosterRow, 'active'>
 
 const TABS = [
   'Surrey Schools',
@@ -37,7 +42,7 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]
 
-const COLUMNS: { key: keyof RosterRow; label: string; minW?: string }[] = [
+const COLUMNS: { key: ColumnKey; label: string; minW?: string }[] = [
   { key: 'regId',            label: 'ID',             minW: 'min-w-[60px]' },
   { key: 'orderId',          label: 'Order #',        minW: 'min-w-[80px]' },
   { key: 'studentIndex',     label: 'Stu #',          minW: 'min-w-[60px]' },
@@ -68,14 +73,15 @@ function filterByTab(rows: RosterRow[], tab: Tab): RosterRow[] {
   return rows.filter((r) => r.schoolCity === tab)
 }
 
-function applySearch(rows: RosterRow[], query: string): RosterRow[] {
+function applySearch(rows: RosterRow[], query: string, showInactive: boolean): RosterRow[] {
   const trimmed = query.trim()
-  if (!trimmed) return rows
-  // "#63385" → exact legacy order match; otherwise substring match across all columns
+  // "#63385" → exact legacy order match, including inactive orders so staff can look them up
   const orderMatch = trimmed.match(/^#\s*(\d+)$/)
   if (orderMatch) return rows.filter((row) => row.orderId === orderMatch[1])
+  const visible = showInactive ? rows : rows.filter((row) => row.active)
+  if (!trimmed) return visible
   const q = trimmed.toLowerCase()
-  return rows.filter((row) =>
+  return visible.filter((row) =>
     COLUMNS.some((c) => row[c.key].toLowerCase().includes(q)),
   )
 }
@@ -86,7 +92,7 @@ const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'bas
 
 // Stable ordering: chosen column first, then registration ID and student index so
 // siblings on one registration always stay in consecutive rows.
-function sortRows(rows: RosterRow[], column: keyof RosterRow, direction: SortDirection): RosterRow[] {
+function sortRows(rows: RosterRow[], column: ColumnKey, direction: SortDirection): RosterRow[] {
   const dir = direction === 'asc' ? 1 : -1
   return [...rows].sort((a, b) => {
     const primary = column === 'studentIndex' ? 0 : collator.compare(a[column], b[column]) * dir
@@ -120,17 +126,18 @@ function toCSV(rows: RosterRow[], tabName: string): string {
 export default function RosterClient({ rows }: { rows: RosterRow[] }) {
   const [activeTab, setActiveTab] = useState<Tab>('Surrey Schools')
   const [search, setSearch] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
   const [pageSize, setPageSize] = useState(100)
   const [isPending, startTransition] = useTransition()
 
   const tabRows = useMemo(() => filterByTab(rows, activeTab), [rows, activeTab])
-  const [sortColumn, setSortColumn] = useState<keyof RosterRow>('regId')
+  const [sortColumn, setSortColumn] = useState<ColumnKey>('regId')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [copied, setCopied] = useState(false)
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const filtered = useMemo(
-    () => sortRows(applySearch(tabRows, search), sortColumn, sortDirection),
-    [tabRows, search, sortColumn, sortDirection],
+    () => sortRows(applySearch(tabRows, search, showInactive), sortColumn, sortDirection),
+    [tabRows, search, showInactive, sortColumn, sortDirection],
   )
   const displayed = filtered.slice(0, pageSize)
 
@@ -139,7 +146,7 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
     setSearch('')
   }
 
-  function handleSort(key: keyof RosterRow) {
+  function handleSort(key: ColumnKey) {
     if (key === sortColumn) {
       setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
@@ -239,7 +246,7 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
       <div className="bg-white border-b border-gray-200 px-6 sticky top-[65px] z-10">
         <nav className="flex gap-0 overflow-x-auto scrollbar-none -mb-px">
           {TABS.map((tab) => {
-            const count = filterByTab(rows, tab).length
+            const count = filterByTab(showInactive ? rows : rows.filter((r) => r.active), tab).length
             const active = tab === activeTab
             return (
               <button
@@ -283,6 +290,15 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
             ))}
           </select>
           entries
+          <label className="ml-4 flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="accent-[#3B4BC8]"
+            />
+            Show cancelled / refunded / unpaid orders
+          </label>
         </div>
         <div className="flex items-center gap-2">
           <label className="text-sm text-gray-600">Search:</label>
@@ -343,15 +359,20 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
                     <tr
                       key={`${row.regId}-${i}`}
                       className={`border-b border-gray-100 hover:bg-blue-50/40 transition-colors ${
-                        i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'
+                        !row.active ? 'bg-red-50/60 text-gray-400' : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'
                       }`}
                     >
                       {COLUMNS.map((c) => (
                         <td
                           key={c.key}
-                          className="px-3 py-2 text-gray-700 whitespace-nowrap"
+                          className={`px-3 py-2 whitespace-nowrap ${row.active ? 'text-gray-700' : 'text-gray-400'}`}
                         >
                           {row[c.key] || <span className="text-gray-300">—</span>}
+                          {c.key === 'orderId' && !row.active && (
+                            <span className="ml-1.5 text-[10px] font-semibold uppercase text-red-600">
+                              {row.orderStatus.replace('_', ' ') || 'inactive'}
+                            </span>
+                          )}
                         </td>
                       ))}
                     </tr>
