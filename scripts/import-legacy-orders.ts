@@ -1,53 +1,86 @@
 /**
- * Imports legacy WooCommerce order exports (CSV) into the Registrations collection.
+ * Imports a legacy WooCommerce order export (CSV) into the Registrations collection.
  *
- * Dry run (default) — parses the CSV and prints the mapped registration payloads
- * as JSON. Does not touch the database.
+ *   env $(grep -v '^#' .env.staging | xargs) npx tsx scripts/import-legacy-orders.ts [path/to/export.csv] [--dry-run]
  *
- *   npx tsx scripts/import-legacy-orders.ts [path/to/export.csv]
+ * Defaults to data/legacy-export.csv. --dry-run prints the mapped payloads
+ * (with resolved relationship IDs) without writing. Orders whose
+ * legacyWooOrderId already exists are skipped, so re-runs are safe.
  *
- * Write mode — resolves School / Season / Product by title and creates
- * registrations. Orders whose legacyWooOrderId already exists are skipped.
+ * Column mapping (headers are trimmed + case-insensitive; a repeated header
+ * gets a " (2)" suffix, e.g. the export has two "Gender #2" and two "Order Total"):
  *
- *   node --require ./src/seed-preload.cjs --require tsx/cjs \
- *     scripts/import-legacy-orders.ts [path/to/export.csv] --write [--product <id>]
- *
- * Recognised columns (header match is case-insensitive; all but Order ID optional):
- *   Order ID, Order Date, Order Status, Order Total, Tax,
- *   P/G F/N, P/G L/N, P/G Email, Phone,
- *   SFN #n, SLN #n, Age #n, Grade #n, Gender #n, Medical #n   (n = 1, 2, …)
- *   School, Season, Product, Order Notes, Customer Note
+ *   Order ID                         → legacyWooOrderId
+ *   Moneris Transaction ID           → monerisOrderId
+ *   P/G F/N, P/G LN, P/G Email, Phone→ parent fields (+ parent link if an account exists)
+ *   E/C Name, E/C Phone              → emergency contact (registration + student #1)
+ *   S FN #1, S LN #1, Age #1         → students[0]
+ *   Gender #2  (1st occurrence)      → students[0].gender  (mislabelled in the export)
+ *   Student First/Last Name #2, Student Age #2, Teacher Name #2,
+ *   Emergency Contact Name/Phone #2  → students[1]
+ *   Order Tax, Order Total           → gstAmount, unitPrice = (total − tax) / students
+ *   Order Status                     → orderStatus + paymentStatus
+ *   Order Date                       → createdAt
+ *   Product Name "Title (City)"      → product (+ city used to disambiguate schools)
+ *   Season / Variation Attributes    → season + school, matched by slugified title
+ *   Location, Schedule/Time, Weeks Selected → campVariationId (camp products)
+ *   Class Date                       → classDate
+ *   Order Note - Most Recent, Notes? → notes[]
  */
 import fs from 'fs'
 import path from 'path'
 
 type Row = Record<string, string>
+type Id = string | number
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled' | 'refunded'
 type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'waived'
 type NoteType = 'system' | 'payment' | 'admin'
+type Gender = 'Male' | 'Female' | 'Rather Not Say'
 
-type MappedRegistration = {
-  parentFirstName: string
-  parentLastName: string
-  parentEmail: string
-  parentPhone: string
-  students: {
-    firstName: string
-    lastName?: string
-    age?: string
-    grade?: string
-    gender?: 'Male' | 'Female' | 'Rather Not Say'
-    medicalNotes?: string
-  }[]
-  legacyWooOrderId: string
-  orderStatus: OrderStatus
-  paymentStatus: PaymentStatus
-  unitPrice?: number
-  gstAmount?: number
-  notes: { note: string; timestamp?: string; type: NoteType }[]
-  // Resolved to relationship IDs in write mode
-  _lookup: { school?: string; season?: string; product?: string }
+type Student = {
+  firstName: string
+  lastName?: string
+  age?: string
+  gender?: Gender
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  teacherName?: string
+}
+
+type Note = { note: string; timestamp?: string; type: NoteType }
+
+type Mapped = {
+  data: {
+    parentFirstName: string
+    parentLastName: string
+    parentEmail: string
+    parentPhone: string
+    emergencyContactFirstName?: string
+    emergencyContactLastName?: string
+    emergencyContactPhone?: string
+    students: Student[]
+    legacyWooOrderId: string
+    monerisOrderId?: string
+    orderStatus: OrderStatus
+    paymentStatus: PaymentStatus
+    unitPrice?: number
+    gstAmount?: number
+    classDate?: string
+    createdAt?: string
+    notes: Note[]
+  }
+  lookup: {
+    productTitle: string
+    city?: string
+    seasonSlug?: string
+    attributeSlugs: string[]
+    location?: string
+    timeslot?: string
+    week?: string
+  }
+  legacyTotal?: number
+  warnings: string[]
 }
 
 // ── CSV parsing ──────────────────────────────────────────────────────────────
@@ -80,15 +113,41 @@ function parseCsv(text: string): string[][] {
   return rows
 }
 
+const normKey = (h: string) => h.trim().toLowerCase().replace(/\s+/g, ' ')
+
 function toObjects(rows: string[][]): Row[] {
   const [header, ...body] = rows
-  const keys = header.map((h) => h.trim().toLowerCase())
+  const seen = new Map<string, number>()
+  const keys = header.map((h) => {
+    const k = normKey(h)
+    const n = (seen.get(k) ?? 0) + 1
+    seen.set(k, n)
+    return n === 1 ? k : `${k} (${n})`
+  })
   return body.map((cells) => Object.fromEntries(keys.map((k, i) => [k, (cells[i] ?? '').trim()])))
 }
 
 // ── Mapping ──────────────────────────────────────────────────────────────────
 
-const get = (row: Row, col: string) => row[col.toLowerCase()] ?? ''
+const get = (row: Row, ...cols: string[]) => {
+  for (const col of cols) {
+    const v = row[normKey(col)]
+    if (v) return v
+  }
+  return ''
+}
+
+const slugify = (s: string) =>
+  s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+const looksLikePhone = (s: string) => /^[+\d\s().-]{7,}$/.test(s)
+const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
+
+function splitName(full: string): { first?: string; last?: string } {
+  const parts = full.trim().split(/\s+/)
+  if (!parts[0]) return {}
+  return { first: parts[0], last: parts.slice(1).join(' ') || undefined }
+}
 
 function mapOrderStatus(raw: string): OrderStatus {
   const v = raw.toLowerCase().replace(/^wc-/, '').trim()
@@ -105,175 +164,220 @@ function paymentStatusFor(status: OrderStatus): PaymentStatus {
   return 'pending'
 }
 
-function mapGender(raw: string): MappedRegistration['students'][number]['gender'] {
+function mapGender(raw: string): Gender | undefined {
   const v = raw.toLowerCase()
   if (v === 'm' || v === 'male' || v === 'boy') return 'Male'
   if (v === 'f' || v === 'female' || v === 'girl') return 'Female'
-  if (v) return 'Rather Not Say'
-  return undefined
+  if (v === 'rather not say') return 'Rather Not Say'
+  return undefined // blank / "Choose an Option"
 }
 
 function toCents(raw: string): number | undefined {
+  if (!raw) return undefined
   const n = parseFloat(raw.replace(/[$,\s]/g, ''))
   return Number.isFinite(n) ? Math.round(n * 100) : undefined
 }
 
 function toIso(raw: string): string | undefined {
   if (!raw) return undefined
-  const d = new Date(raw)
+  // Date-only values are local calendar dates; parse at local midnight, not UTC
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T00:00:00`) : new Date(raw)
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString()
 }
 
-function mapRow(row: Row): MappedRegistration {
+function mapRow(row: Row): Mapped {
+  const warnings: string[] = []
   const orderId = get(row, 'Order ID')
-
-  // Student slots: SFN #1, SFN #2, … with matching SLN / Age / Grade / Gender / Medical columns
-  const slots = Object.keys(row)
-    .map((k) => k.match(/^sfn #(\d+)$/)?.[1])
-    .filter((n): n is string => !!n)
-    .sort((a, b) => Number(a) - Number(b))
-
-  const students = slots
-    .filter((n) => get(row, `SFN #${n}`))
-    .map((n) => {
-      const student: MappedRegistration['students'][number] = { firstName: get(row, `SFN #${n}`) }
-      const lastName = get(row, `SLN #${n}`)
-      const age = get(row, `Age #${n}`)
-      const grade = get(row, `Grade #${n}`)
-      const gender = mapGender(get(row, `Gender #${n}`))
-      const medical = get(row, `Medical #${n}`)
-      if (lastName) student.lastName = lastName
-      if (age) student.age = age
-      if (grade) student.grade = grade
-      if (gender) student.gender = gender
-      if (medical) student.medicalNotes = medical
-      return student
-    })
-
-  const orderStatus = mapOrderStatus(get(row, 'Order Status'))
   const orderDate = toIso(get(row, 'Order Date'))
 
-  const notes: MappedRegistration['notes'] = [
+  // Emergency contact — the legacy form sometimes got a phone number in the name field
+  const ecNameRaw = get(row, 'E/C Name')
+  const ecPhone = get(row, 'E/C Phone')
+  const ecName = looksLikePhone(ecNameRaw) ? '' : ecNameRaw
+  const ec = splitName(ecName)
+
+  const students: Student[] = []
+  const s1First = get(row, 'S FN #1', 'SFN #1')
+  if (s1First) {
+    students.push({
+      firstName: s1First,
+      lastName: get(row, 'S LN #1', 'SLN #1') || undefined,
+      age: get(row, 'Age #1') || undefined,
+      // First "Gender #2" column is actually student #1's gender
+      gender: mapGender(get(row, 'Gender #1', 'Gender #2')),
+      emergencyContactName: ecName || undefined,
+      emergencyContactPhone: ecPhone || undefined,
+    })
+  }
+  const s2First = get(row, 'Student First Name #2', 'S FN #2', 'SFN #2')
+  if (s2First) {
+    // The second "Gender #2" column mirrors student #1 on every row, so it isn't trusted for student #2
+    students.push({
+      firstName: s2First,
+      lastName: get(row, 'Student Last Name #2', 'S LN #2', 'SLN #2') || undefined,
+      age: get(row, 'Student Age #2', 'Age #2') || undefined,
+      emergencyContactName: get(row, 'Emergency Contact Name #2') || undefined,
+      emergencyContactPhone: get(row, 'Emergency Contact Phone #2') || undefined,
+      teacherName: get(row, 'Teacher Name #2') || undefined,
+    })
+  }
+
+  const orderStatus = mapOrderStatus(get(row, 'Order Status'))
+
+  const notes: Note[] = [
     { note: `Imported from legacy WooCommerce export (order #${orderId}).`, timestamp: new Date().toISOString(), type: 'system' },
   ]
-  const orderNotes = get(row, 'Order Notes')
-  const customerNote = get(row, 'Customer Note')
-  if (orderNotes) notes.push({ note: orderNotes, timestamp: orderDate, type: 'admin' })
-  if (customerNote) notes.push({ note: `Customer note: ${customerNote}`, timestamp: orderDate, type: 'admin' })
+  const lastNote = get(row, 'Order Note - Most Recent')
+  const adminNote = get(row, 'Notes?')
+  if (lastNote) notes.push({ note: lastNote, timestamp: orderDate, type: 'system' })
+  if (adminNote) notes.push({ note: adminNote, timestamp: orderDate, type: 'admin' })
+  if (ecNameRaw && !ecName) {
+    notes.push({ note: `Legacy emergency contact name field contained "${ecNameRaw}".`, timestamp: orderDate, type: 'system' })
+  }
 
-  const total = toCents(get(row, 'Order Total'))
-  const tax = toCents(get(row, 'Tax')) ?? 0
+  // The export has two "Order Total" columns; the first is usually blank
+  const total = toCents(get(row, 'Order Total', 'Order Total (2)'))
+  const tax = toCents(get(row, 'Order Tax', 'Line Taxes', 'Tax')) ?? 0
   let unitPrice: number | undefined
   if (total !== undefined && students.length > 0) {
     unitPrice = Math.round((total - tax) / students.length)
-    notes.push({ note: `Legacy order total: $${(total / 100).toFixed(2)}`, timestamp: orderDate, type: 'payment' })
+    if (unitPrice * students.length + tax !== total) warnings.push(`total ${total} doesn't split evenly across ${students.length} students`)
+    notes.push({ note: `Legacy order total: $${(total / 100).toFixed(2)} (tax $${(tax / 100).toFixed(2)})`, timestamp: orderDate, type: 'payment' })
   }
 
-  const lookup: MappedRegistration['_lookup'] = {}
-  if (get(row, 'School')) lookup.school = get(row, 'School')
-  if (get(row, 'Season')) lookup.season = get(row, 'Season')
-  if (get(row, 'Product')) lookup.product = get(row, 'Product')
+  const productName = get(row, 'Product Name', 'Product')
+  const cityMatch = productName.match(/\(([^)]+)\)\s*$/)
+  const attributeSlugs = get(row, 'Variation Attributes').split(',').map((s) => slugify(s)).filter(Boolean)
 
   return {
-    parentFirstName: get(row, 'P/G F/N'),
-    parentLastName: get(row, 'P/G L/N'),
-    parentEmail: get(row, 'P/G Email').toLowerCase(),
-    parentPhone: get(row, 'Phone'),
-    students,
-    legacyWooOrderId: orderId,
-    orderStatus,
-    paymentStatus: paymentStatusFor(orderStatus),
-    ...(unitPrice !== undefined ? { unitPrice, gstAmount: tax } : {}),
-    notes,
-    _lookup: lookup,
+    data: {
+      parentFirstName: get(row, 'P/G F/N'),
+      parentLastName: get(row, 'P/G LN', 'P/G L/N'),
+      parentEmail: get(row, 'P/G Email').toLowerCase(),
+      parentPhone: get(row, 'Phone'),
+      ...(ec.first ? { emergencyContactFirstName: ec.first } : {}),
+      ...(ec.last ? { emergencyContactLastName: ec.last } : {}),
+      ...(ecPhone ? { emergencyContactPhone: ecPhone } : {}),
+      students,
+      legacyWooOrderId: orderId,
+      ...(get(row, 'Moneris Transaction ID') ? { monerisOrderId: get(row, 'Moneris Transaction ID') } : {}),
+      orderStatus,
+      paymentStatus: paymentStatusFor(orderStatus),
+      ...(unitPrice !== undefined ? { unitPrice, gstAmount: tax } : {}),
+      ...(get(row, 'Class Date', 'Schedule/Time') ? { classDate: get(row, 'Class Date', 'Schedule/Time') } : {}),
+      ...(orderDate ? { createdAt: orderDate } : {}),
+      notes,
+    },
+    lookup: {
+      productTitle: cityMatch ? productName.slice(0, cityMatch.index).trim() : productName,
+      city: cityMatch?.[1],
+      seasonSlug: slugify(get(row, 'Season')) || undefined,
+      attributeSlugs,
+      location: get(row, 'Location') || undefined,
+      timeslot: get(row, 'Schedule/Time') || undefined,
+      week: get(row, 'Weeks Selected') || undefined,
+    },
+    legacyTotal: total,
+    warnings,
   }
 }
 
-function validate(reg: MappedRegistration): string[] {
+function validate({ data, lookup }: Mapped): string[] {
   const problems: string[] = []
-  if (!reg.legacyWooOrderId) problems.push('missing Order ID')
-  if (!reg.parentFirstName) problems.push('missing P/G F/N')
-  if (!reg.parentLastName) problems.push('missing P/G L/N')
-  if (!reg.parentEmail) problems.push('missing P/G Email')
-  if (!reg.parentPhone) problems.push('missing Phone')
-  if (reg.students.length === 0) problems.push('no students (SFN #n)')
+  if (!data.legacyWooOrderId) problems.push('missing Order ID')
+  if (!data.parentFirstName) problems.push('missing P/G F/N')
+  if (!data.parentLastName) problems.push('missing P/G LN')
+  if (!isEmail(data.parentEmail)) problems.push(`invalid P/G Email "${data.parentEmail}"`)
+  if (!data.parentPhone) problems.push('missing Phone')
+  if (data.students.length === 0) problems.push('no students')
+  if (!lookup.productTitle) problems.push('missing Product Name')
   return problems
 }
 
-// ── Write mode ───────────────────────────────────────────────────────────────
+// ── Relationship resolution ──────────────────────────────────────────────────
 
-async function writeRegistrations(regs: MappedRegistration[], fallbackProductId?: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyDoc = Record<string, any>
+
+async function loadPayload() {
+  // Same @next/env interop patch the seed scripts use via `node --require`
+  await import('../src/seed-preload.cjs')
   const { getPayload } = await import('payload')
   const { default: config } = await import('../payload.config')
-  const payload = await getPayload({ config })
+  return getPayload({ config })
+}
 
-  const cache = new Map<string, string | number | null>()
-  async function resolve(collection: 'schools' | 'seasons' | 'products', title?: string) {
-    if (!title) return null
-    const key = `${collection}:${title.toLowerCase()}`
-    if (!cache.has(key)) {
-      const res = await payload.find({ collection, where: { title: { like: title } }, limit: 1, depth: 0 })
-      cache.set(key, res.docs[0]?.id ?? null)
+type Payload = Awaited<ReturnType<typeof loadPayload>>
+
+async function buildResolver(payload: Payload) {
+  const all = async (collection: 'schools' | 'seasons' | 'products' | 'cities' | 'locations' | 'timeslots' | 'camp-weeks') =>
+    (await payload.find({ collection, limit: 5000, depth: 0, pagination: false })).docs as AnyDoc[]
+
+  const [schools, seasons, products, cities, locations, timeslots, weeks] = await Promise.all([
+    all('schools'), all('seasons'), all('products'), all('cities'), all('locations'), all('timeslots'), all('camp-weeks'),
+  ])
+  const relId = (v: unknown): Id | undefined => (v && typeof v === 'object' ? (v as AnyDoc).id : (v as Id | undefined))
+
+  return (m: Mapped) => {
+    const errors: string[] = []
+    const { lookup } = m
+
+    const productTitle = lookup.productTitle.toLowerCase()
+    const product = products.find((p) => String(p.title).toLowerCase() === productTitle)
+    if (!product) errors.push(`product "${lookup.productTitle}" not found`)
+
+    const seasonSlugs = [lookup.seasonSlug, ...lookup.attributeSlugs].filter(Boolean)
+    const season = seasons.find((s) => seasonSlugs.includes(slugify(s.title)))
+
+    // School slug comes from Variation Attributes; narrow by the city in the product name
+    const city = lookup.city
+      ? cities.find((c) => slugify(c.title).startsWith(slugify(lookup.city!)))
+      : undefined
+    const schoolCandidates = schools.filter((s) => lookup.attributeSlugs.includes(slugify(s.title)))
+    const school = schoolCandidates.length > 1 && city
+      ? schoolCandidates.find((s) => relId(s.city) === city.id)
+      : schoolCandidates[0]
+
+    // Camp attribution: match the product variation by location / timeslot / week labels
+    let campVariationId: string | undefined
+    if (product && (lookup.location || lookup.week)) {
+      const byLabel = (docs: AnyDoc[], field: string, label?: string) =>
+        label ? docs.find((d) => slugify(String(d[field])) === slugify(label))?.id : undefined
+      const locationId = byLabel(locations, 'name', lookup.location)
+      const timeslotId = byLabel(timeslots, 'label', lookup.timeslot)
+      const weekId = byLabel(weeks, 'label', lookup.week)
+      const variation = ((product.variations ?? []) as AnyDoc[]).find((v) =>
+        (!locationId || relId(v.location) === locationId) &&
+        (!timeslotId || relId(v.timeslot) === timeslotId) &&
+        (!weekId || relId(v.campWeek) === weekId),
+      )
+      if (variation) campVariationId = variation.id
+      else errors.push(`no camp variation for location "${lookup.location}" / time "${lookup.timeslot}" / week "${lookup.week}"`)
     }
-    return cache.get(key) ?? null
+
+    const warnings: string[] = []
+    if (!season) warnings.push(`season not found (${seasonSlugs.join(', ')})`)
+    if (!school && !campVariationId) warnings.push(`school not found (${lookup.attributeSlugs.join(', ')})`)
+
+    return {
+      errors,
+      warnings,
+      relations: {
+        product: product?.id as Id | undefined,
+        season: season?.id as Id | undefined,
+        school: school?.id as Id | undefined,
+        ...(campVariationId ? { campVariationId } : {}),
+      },
+    }
   }
-
-  let created = 0
-  let skipped = 0
-  let failed = 0
-  for (const reg of regs) {
-    const existing = await payload.find({
-      collection: 'registrations',
-      where: { legacyWooOrderId: { equals: reg.legacyWooOrderId } },
-      limit: 1,
-      depth: 0,
-    })
-    if (existing.totalDocs > 0) {
-      console.log(`↷ #${reg.legacyWooOrderId}: already imported`)
-      skipped++
-      continue
-    }
-
-    const { _lookup, ...data } = reg
-    const school = await resolve('schools', _lookup.school)
-    const season = await resolve('seasons', _lookup.season)
-    const product = (await resolve('products', _lookup.product)) ?? fallbackProductId ?? null
-    if (!product) {
-      console.error(`✗ #${reg.legacyWooOrderId}: no product (add a Product column or pass --product <id>)`)
-      failed++
-      continue
-    }
-    if (_lookup.school && !school) console.warn(`  #${reg.legacyWooOrderId}: school "${_lookup.school}" not found`)
-    if (_lookup.season && !season) console.warn(`  #${reg.legacyWooOrderId}: season "${_lookup.season}" not found`)
-
-    try {
-      const doc = await payload.create({
-        collection: 'registrations',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data: { ...data, school, season, product } as any,
-      })
-      console.log(`✓ #${reg.legacyWooOrderId} → registration ${doc.id}`)
-      created++
-    } catch (err) {
-      console.error(`✗ #${reg.legacyWooOrderId}: ${(err as Error).message}`)
-      failed++
-    }
-  }
-
-  console.log(`\nCreated ${created}, skipped ${skipped}, failed ${failed}`)
-  process.exit(failed > 0 ? 1 : 0)
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
   const args = process.argv.slice(2)
-  const write = args.includes('--write')
-  const productIdx = args.indexOf('--product')
-  const fallbackProductId = productIdx >= 0 ? args[productIdx + 1] : undefined
-  const csvPath = path.resolve(
-    args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--product') ?? 'data/legacy-export.csv',
-  )
+  const dryRun = args.includes('--dry-run')
+  const csvPath = path.resolve(args.find((a) => !a.startsWith('--')) ?? 'data/legacy-export.csv')
 
   if (!fs.existsSync(csvPath)) {
     console.error(`CSV not found: ${csvPath}`)
@@ -286,25 +390,72 @@ async function main() {
     process.exit(1)
   }
 
-  const valid: MappedRegistration[] = []
-  const invalid: { line: number; orderId: string; problems: string[] }[] = []
-  rows.forEach((row, i) => {
-    const reg = mapRow(row)
-    const problems = validate(reg)
-    if (problems.length) invalid.push({ line: i + 2, orderId: reg.legacyWooOrderId, problems })
-    else valid.push(reg)
-  })
+  const payload = await loadPayload()
+  const resolve = await buildResolver(payload)
 
-  if (!write) {
-    console.log(JSON.stringify(valid, null, 2))
-    console.error(`\nDry run: ${rows.length} rows → ${valid.length} valid, ${invalid.length} invalid`)
-    for (const bad of invalid) console.error(`  line ${bad.line} (#${bad.orderId || '?'}): ${bad.problems.join(', ')}`)
-    console.error('Re-run with --write to import.')
-    return
+  let created = 0
+  let skipped = 0
+  let failed = 0
+  const preview: AnyDoc[] = []
+
+  for (const [i, row] of rows.entries()) {
+    const m = mapRow(row)
+    const label = `line ${i + 2} #${m.data.legacyWooOrderId || '?'}`
+
+    const problems = validate(m)
+    const { errors, warnings, relations } = resolve(m)
+    for (const w of [...m.warnings, ...warnings]) console.warn(`  ⚠ ${label}: ${w}`)
+    if (problems.length || errors.length) {
+      console.error(`✗ ${label}: ${[...problems, ...errors].join('; ')}`)
+      failed++
+      continue
+    }
+
+    const existing = await payload.find({
+      collection: 'registrations',
+      where: { legacyWooOrderId: { equals: m.data.legacyWooOrderId } },
+      limit: 1,
+      depth: 0,
+    })
+    if (existing.totalDocs > 0) {
+      console.log(`↷ ${label}: already imported as registration ${existing.docs[0].id}`)
+      skipped++
+      continue
+    }
+
+    const parent = await payload.find({
+      collection: 'parents',
+      where: { email: { equals: m.data.parentEmail } },
+      limit: 1,
+      depth: 0,
+    })
+
+    const data = { ...m.data, ...relations, ...(parent.docs[0] ? { parent: parent.docs[0].id } : {}) }
+    if (dryRun) {
+      preview.push(data)
+      continue
+    }
+
+    try {
+      const doc = await payload.create({
+        collection: 'registrations',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: data as any,
+      })
+      if (m.legacyTotal !== undefined && doc.totalAmount !== m.legacyTotal) {
+        console.warn(`  ⚠ ${label}: stored total ${doc.totalAmount} ≠ legacy total ${m.legacyTotal}`)
+      }
+      console.log(`✓ ${label} → registration ${doc.id} (${m.data.students.map((s) => s.firstName).join(', ')})`)
+      created++
+    } catch (err) {
+      console.error(`✗ ${label}: ${(err as Error).message}`)
+      failed++
+    }
   }
 
-  for (const bad of invalid) console.error(`skipping line ${bad.line} (#${bad.orderId || '?'}): ${bad.problems.join(', ')}`)
-  await writeRegistrations(valid, fallbackProductId)
+  if (dryRun) console.log(JSON.stringify(preview, null, 2))
+  console.log(`\n${dryRun ? 'Dry run — would create' : 'Created'} ${dryRun ? preview.length : created}, skipped ${skipped}, failed ${failed}`)
+  process.exit(failed > 0 ? 1 : 0)
 }
 
 main().catch((err) => {
