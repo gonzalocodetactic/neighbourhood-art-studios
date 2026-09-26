@@ -30,13 +30,15 @@
  *   Order Date                       → createdAt
  *   Product Name "Title (City)"      → product (+ city used to disambiguate schools), via
  *                                      PRODUCT_ALIASES; a title that still doesn't match is
- *                                      auto-created as a bare product (no variations)
+ *                                      auto-created
  *   Season / Variation Attributes    → season + school, matched by slugified title; season
  *                                      falls back to one named in the product title
- *                                      ("Spring Art Camps 2026" → Spring 2026)
- *   Location, Schedule/Time, Weeks Selected → campVariationId (camp products); every label
- *                                      given must match, otherwise the order is imported
- *                                      unattributed with the legacy labels kept in notes
+ *                                      ("Summer Art Camps 2026" → Summer 2026, created if
+ *                                      missing), then Winter <year> for in-school orders
+ *                                      placed Jan–Mar
+ *   Location, Schedule/Time, Weeks Selected → campVariationId (camp products); missing
+ *                                      locations / timeslots / camp weeks and variation
+ *                                      rows are created on the product before importing
  *   student #1's class date          → classDate (order level, used in confirmations)
  *   Order Note - Most Recent, Notes? → notes[]
  */
@@ -162,9 +164,14 @@ const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) && !s.includ
 
 /** Legacy product title (lowercase, city suffix removed) → current product title */
 const PRODUCT_ALIASES: Record<string, string> = {
-  // Spring in-school sessions were sold as a separate WooCommerce product; they're
-  // now the spring season of the in-school product (school + spring-2026 attributes)
-  'spring art sessions': 'Art Classes At Your School',
+  // The year lives on the season (Summer 2026), not in the product title
+  'summer art camps 2026': 'Summer Art Camps',
+}
+
+/** "Summer Art Camps 2026" → "Summer 2026" */
+function seasonInTitle(title: string): string | undefined {
+  const m = title.match(/\b(winter|spring|summer|fall)\b.*\b(\d{4})\b/i)
+  return m ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()} ${m[2]}` : undefined
 }
 
 function splitName(full: string): { first?: string; last?: string } {
@@ -383,7 +390,7 @@ async function loadPayload() {
 
 type Payload = Awaited<ReturnType<typeof loadPayload>>
 
-async function buildResolver(payload: Payload) {
+async function buildResolver(payload: Payload, dryRun: boolean) {
   const all = async (collection: 'schools' | 'seasons' | 'products' | 'cities' | 'locations' | 'timeslots' | 'camp-weeks') =>
     (await payload.find({ collection, limit: 5000, depth: 0, pagination: false })).docs as AnyDoc[]
 
@@ -392,23 +399,101 @@ async function buildResolver(payload: Payload) {
   ])
   const relId = (v: unknown): Id | undefined => (v && typeof v === 'object' ? (v as AnyDoc).id : (v as Id | undefined))
   const findProduct = (title: string) => products.find((p) => String(p.title).toLowerCase() === title.toLowerCase())
+  const findSeason = (title: string) => seasons.find((s) => slugify(s.title) === slugify(title))
+  // "Grace Point Church" and "Gracepoint Church" are the same place
+  const compact = (s: string) => slugify(s).replace(/-/g, '')
+  const byLabel = (docs: AnyDoc[], field: string, label: string) =>
+    docs.find((d) => compact(String(d[field])) === compact(label))
+  const isCamp = (lookup: Mapped['lookup']) => Boolean(lookup.location || lookup.week)
+  const sameRel = (a: unknown, b: unknown) => String(relId(a) ?? '') === String(relId(b) ?? '')
+
+  let fakeId = 0
+  const create = async (collection: 'products' | 'seasons' | 'locations' | 'timeslots' | 'camp-weeks', data: AnyDoc, what: string) => {
+    console.log(`${dryRun ? '+ would create' : '+ created'} ${what}`)
+    if (dryRun) return { id: `new-${++fakeId}`, ...data }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (await payload.create({ collection, data: data as any })) as AnyDoc
+  }
+
+  function seasonFor(m: Mapped) {
+    const { lookup } = m
+    const seasonSlugs = [lookup.seasonSlug, ...lookup.attributeSlugs].filter(Boolean)
+    const fromAttributes = seasons.find((s) => seasonSlugs.includes(slugify(s.title)))
+    if (fromAttributes) return fromAttributes
+    // Camp exports leave Season blank; fall back to a season named in the product title
+    const fromTitle = seasonInTitle(lookup.legacyProductTitle)
+    if (fromTitle) return findSeason(fromTitle)
+    // In-school orders placed Jan–Mar without a season are the winter session
+    const ordered = m.data.createdAt ? new Date(m.data.createdAt) : undefined
+    if (!isCamp(lookup) && ordered && ordered.getMonth() <= 2) return findSeason(`Winter ${ordered.getFullYear()}`)
+    return undefined
+  }
 
   /**
-   * Creates a bare product (no variations) for each title that doesn't exist yet, so its
-   * orders import instead of failing. Returns the titles it created (or would create).
+   * Creates whatever the export references but the catalogue lacks, so no order fails:
+   * seasons named in product titles, products (bare), and for camp products the
+   * location / timeslot / week records plus a variation row for each combination.
    */
-  const ensureProducts = async (mapped: Mapped[], dryRun: boolean) => {
-    const missing = new Map<string, Mapped['lookup']>()
+  const ensureCatalog = async (mapped: Mapped[]) => {
+    for (const title of new Set(mapped.map((m) => seasonInTitle(m.lookup.legacyProductTitle)))) {
+      if (title && !findSeason(title)) seasons.push(await create('seasons', { title, active: false }, `season "${title}"`))
+    }
+
     for (const { lookup } of mapped) {
-      if (lookup.productTitle && !findProduct(lookup.productTitle)) missing.set(lookup.productTitle, lookup)
+      if (!lookup.productTitle || findProduct(lookup.productTitle)) continue
+      const productType = isCamp(lookup) || /camp/i.test(lookup.productTitle) ? 'camp' : 'in-school'
+      products.push({
+        variations: [],
+        ...await create('products', { title: lookup.productTitle, productType }, `${productType} product "${lookup.productTitle}"`),
+      })
     }
-    for (const [title, lookup] of missing) {
-      const productType = lookup.location || lookup.week || /camp/i.test(title) ? 'camp' : 'in-school'
-      if (dryRun) products.push({ id: `(new: ${title})`, title, variations: [] })
-      else products.push(await payload.create({ collection: 'products', data: { title, productType } }) as AnyDoc)
-      console.log(`${dryRun ? '+ would create' : '+ created'} ${productType} product "${title}"`)
+
+    const labelled = async (docs: AnyDoc[], collection: 'locations' | 'timeslots' | 'camp-weeks', field: string, label?: string) => {
+      if (!label) return undefined
+      const found = byLabel(docs, field, label)
+      if (found) return found
+      const doc = await create(collection, { [field]: label }, `${collection.replace(/s$/, '')} "${label}"`)
+      docs.push(doc)
+      return doc
     }
-    return [...missing.keys()]
+
+    const added = new Map<AnyDoc, AnyDoc[]>()
+    for (const m of mapped.filter((m) => isCamp(m.lookup))) {
+      const product = findProduct(m.lookup.productTitle)!
+      const location = await labelled(locations, 'locations', 'name', m.lookup.location)
+      const timeslot = await labelled(timeslots, 'timeslots', 'label', m.lookup.timeslot)
+      const campWeek = await labelled(weeks, 'camp-weeks', 'label', m.lookup.week)
+      const variations = (product.variations ?? []) as AnyDoc[]
+      const exists = variations.some((v) =>
+        sameRel(v.location, location) && sameRel(v.timeslot, timeslot) && sameRel(v.campWeek, campWeek))
+      if (exists) continue
+      const variation = {
+        location: location?.id,
+        timeslot: timeslot?.id,
+        campWeek: campWeek?.id,
+        season: seasonFor(m)?.id,
+        price: m.data.unitPrice !== undefined ? m.data.unitPrice / 100 : 225,
+      }
+      variations.push(variation)
+      product.variations = variations
+      added.set(product, [...(added.get(product) ?? []), variation])
+      console.log(`${dryRun ? '+ would add' : '+ adding'} variation to "${product.title}": ${[m.lookup.location, m.lookup.timeslot, m.lookup.week].filter(Boolean).join(' / ')}`)
+    }
+    // Save once per product; the saved doc carries the generated variation IDs
+    for (const product of added.keys()) {
+      if (dryRun) {
+        product.variations.forEach((v: AnyDoc) => { v.id ??= `new-${++fakeId}` })
+        continue
+      }
+      const saved = await payload.update({
+        collection: 'products',
+        id: product.id,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data: { variations: product.variations } as any,
+        depth: 0,
+      })
+      product.variations = saved.variations
+    }
   }
 
   const resolve = (m: Mapped) => {
@@ -418,11 +503,7 @@ async function buildResolver(payload: Payload) {
     const product = findProduct(lookup.productTitle)
     if (!product) errors.push(`product "${lookup.productTitle}" not found`)
 
-    // Camp exports leave Season blank; fall back to a season named in the product title
-    const seasonSlugs = [lookup.seasonSlug, ...lookup.attributeSlugs].filter(Boolean)
-    const titleWords = slugify(lookup.legacyProductTitle).split('-')
-    const season = seasons.find((s) => seasonSlugs.includes(slugify(s.title)))
-      ?? seasons.find((s) => slugify(s.title).split('-').every((w) => titleWords.includes(w)))
+    const season = seasonFor(m)
 
     // School slug comes from Variation Attributes; narrow by the city in the product name
     const city = lookup.city
@@ -433,27 +514,24 @@ async function buildResolver(payload: Payload) {
       ? schoolCandidates.find((s) => relId(s.city) === city.id)
       : schoolCandidates[0]
 
-    // Camp attribution: match the product variation by location / timeslot / week labels
     // Camp attribution: match the product variation by location / timeslot / week labels.
     // A label that is present but unknown must not match loosely, or the order lands on
     // an arbitrary variation; it's imported unattributed instead.
     const warnings: string[] = []
     const notes: Note[] = []
     let campVariationId: string | undefined
-    if (product && (lookup.location || lookup.week)) {
-      const byLabel = (docs: AnyDoc[], field: string, label?: string) =>
-        docs.find((d) => slugify(String(d[field])) === slugify(label ?? ''))?.id
-      const locationId = lookup.location ? byLabel(locations, 'name', lookup.location) : undefined
-      const timeslotId = lookup.timeslot ? byLabel(timeslots, 'label', lookup.timeslot) : undefined
-      const weekId = lookup.week ? byLabel(weeks, 'label', lookup.week) : undefined
-      const resolved = (!lookup.location || locationId) && (!lookup.timeslot || timeslotId) && (!lookup.week || weekId)
+    if (product && isCamp(lookup)) {
+      const location = lookup.location ? byLabel(locations, 'name', lookup.location) : undefined
+      const timeslot = lookup.timeslot ? byLabel(timeslots, 'label', lookup.timeslot) : undefined
+      const week = lookup.week ? byLabel(weeks, 'label', lookup.week) : undefined
+      const resolved = (!lookup.location || location) && (!lookup.timeslot || timeslot) && (!lookup.week || week)
       const variation = resolved
         ? ((product.variations ?? []) as AnyDoc[]).find((v) =>
-          (!locationId || relId(v.location) === locationId) &&
-          (!timeslotId || relId(v.timeslot) === timeslotId) &&
-          (!weekId || relId(v.campWeek) === weekId))
+          (!location || sameRel(v.location, location)) &&
+          (!timeslot || sameRel(v.timeslot, timeslot)) &&
+          (!week || sameRel(v.campWeek, week)))
         : undefined
-      if (variation) campVariationId = variation.id
+      if (variation) campVariationId = String(variation.id)
       else {
         const legacy = [lookup.location, lookup.timeslot, lookup.week].filter(Boolean).join(' / ')
         warnings.push(`no camp variation for "${legacy}" → imported without campVariationId`)
@@ -461,8 +539,8 @@ async function buildResolver(payload: Payload) {
       }
     }
 
-    if (!season) warnings.push(`season not found (${seasonSlugs.join(', ')})`)
-    if (!school && !campVariationId && !(lookup.location || lookup.week)) {
+    if (!season) warnings.push(`season not found (${[lookup.seasonSlug, ...lookup.attributeSlugs].filter(Boolean).join(', ')})`)
+    if (!school && !campVariationId && !isCamp(lookup)) {
       warnings.push(`school not found (${lookup.attributeSlugs.join(', ')})`)
     }
 
@@ -479,7 +557,7 @@ async function buildResolver(payload: Payload) {
     }
   }
 
-  return { resolve, ensureProducts }
+  return { resolve, ensureCatalog }
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
@@ -501,9 +579,9 @@ async function main() {
   }
 
   const payload = await loadPayload()
-  const { resolve, ensureProducts } = await buildResolver(payload)
+  const { resolve, ensureCatalog } = await buildResolver(payload, dryRun)
   const mappedRows = rows.map(mapRow)
-  await ensureProducts(mappedRows.filter((m) => validate(m).length === 0), dryRun)
+  await ensureCatalog(mappedRows.filter((m) => validate(m).length === 0))
 
   let created = 0
   let skipped = 0
