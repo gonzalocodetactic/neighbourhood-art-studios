@@ -48,6 +48,8 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]
 
+const SEASONS = ['Fall 2026', 'Spring 2026', 'Winter 2026', 'Summer 2026'] as const
+
 const COLUMNS: { key: ColumnKey; label: string; minW?: string }[] = [
   { key: 'regId',            label: 'ID',             minW: 'min-w-[60px]' },
   { key: 'orderId',          label: 'Order #',        minW: 'min-w-[80px]' },
@@ -96,6 +98,15 @@ function applySearch(rows: RosterRow[], query: string, showInactive: boolean): R
   )
 }
 
+// Season and school dropdowns; empty string means "all"
+function applyFilters(rows: RosterRow[], season: string, school: string): RosterRow[] {
+  if (!season && !school) return rows
+  const s = season.toLowerCase()
+  return rows.filter(
+    (row) => (!season || row.season.toLowerCase() === s) && (!school || row.school === school),
+  )
+}
+
 type SortDirection = 'asc' | 'desc'
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
@@ -137,10 +148,17 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
   const [activeTab, setActiveTab] = useState<Tab>('Surrey Schools')
   const [search, setSearch] = useState('')
   const [showInactive, setShowInactive] = useState(false)
+  const [season, setSeason] = useState('')
+  const [school, setSchool] = useState('')
   const [pageSize, setPageSize] = useState(100)
   const [isPending, startTransition] = useTransition()
 
-  const tabRows = useMemo(() => filterByTab(rows, activeTab), [rows, activeTab])
+  const schools = useMemo(
+    () => [...new Set(rows.map((r) => r.school).filter(Boolean))].sort(collator.compare),
+    [rows],
+  )
+  const filteredRows = useMemo(() => applyFilters(rows, season, school), [rows, season, school])
+  const tabRows = useMemo(() => filterByTab(filteredRows, activeTab), [filteredRows, activeTab])
   const [sortColumn, setSortColumn] = useState<ColumnKey>('regId')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [copied, setCopied] = useState(false)
@@ -256,7 +274,7 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
       <div className="bg-white border-b border-gray-200 px-6 sticky top-[65px] z-10">
         <nav className="flex gap-0 overflow-x-auto scrollbar-none -mb-px">
           {TABS.map((tab) => {
-            const count = filterByTab(showInactive ? rows : rows.filter((r) => r.active), tab).length
+            const count = filterByTab(showInactive ? filteredRows : filteredRows.filter((r) => r.active), tab).length
             const active = tab === activeTab
             return (
               <button
@@ -310,8 +328,34 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
             Show cancelled / refunded / unpaid orders
           </label>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600">Search:</label>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            aria-label="Season"
+            value={season}
+            onChange={(e) => setSeason(e.target.value)}
+            className="px-2 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-[#3B4BC8]"
+          >
+            <option value="">All Seasons</option>
+            {SEASONS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <select
+            aria-label="School"
+            value={school}
+            onChange={(e) => setSchool(e.target.value)}
+            className="px-2 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-[#3B4BC8] max-w-[220px]"
+          >
+            <option value="">All Schools</option>
+            {schools.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <label className="ml-2 text-sm text-gray-600">Search:</label>
           <input
             type="text"
             value={search}
@@ -359,8 +403,8 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
                       colSpan={COLUMNS.length}
                       className="px-6 py-12 text-center text-sm text-gray-400"
                     >
-                      {search
-                        ? `No results match "${search}".`
+                      {search || season || school
+                        ? 'No registrations match the current filters.'
                         : 'No registrations found for this category.'}
                     </td>
                   </tr>
@@ -396,7 +440,8 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
         {/* Footer info */}
         <p className="mt-3 text-xs text-gray-400">
           Showing {Math.min(displayed.length, filtered.length)} of {filtered.length} entries
-          {search && ` (filtered from ${tabRows.length} in this tab)`}
+          {(search || season || school) &&
+            ` (filtered from ${filterByTab(rows, activeTab).length} in this tab)`}
           {' · '}
           {rows.length} total registrations across all tabs
         </p>
