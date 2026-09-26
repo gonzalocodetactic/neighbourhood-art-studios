@@ -3,31 +3,34 @@
  *
  *   env $(grep -v '^#' .env.staging | xargs) npx tsx scripts/import-legacy-orders.ts [path/to/export.csv] [--dry-run]
  *
- * Defaults to data/legacy-export.csv. --dry-run prints the mapped payloads
+ * Defaults to data/Order Items Export - 2026-09-26 (1).csv. --dry-run prints the mapped payloads
  * (with resolved relationship IDs) without writing. Orders whose
  * legacyWooOrderId already exists are skipped, so re-runs are safe.
  *
  * Column mapping (headers are trimmed + case-insensitive; a repeated header
- * gets a " (2)" suffix, e.g. the export has two "Gender #2" and two "Order Total"):
+ * gets a " (2)" suffix, e.g. the export has two "Gender #2", "Class Date #2",
+ * "Teacher Name #2" and "Order Total"):
  *
  *   Order ID                         → legacyWooOrderId
  *   Moneris Transaction ID           → monerisOrderId
- *   P/G F/N, P/G LN, P/G Email, Phone→ parent fields (+ parent link if an account exists)
+ *   P/G F/N, P/G LN, P/G Email, Phone→ parent fields (+ parent link if an account exists);
+ *                                      an invalid email gets a placeholder and is kept in notes
  *   E/C Name, E/C Phone              → emergency contact (registration + student #1)
  *   S FN #1, S LN #1, Age #1         → students[0]
  *   Gender #2  (1st occurrence)      → students[0].gender  (mislabelled in the export)
  *   Student First/Last Name #2, Student Age #2,
  *   Emergency Contact Name/Phone #2  → students[1]
- *   Teacher Name #n, Division #n, Class Date #n
- *                                    → students[n-1].teacherName / divisionNumber / classDate,
- *                                      falling back to Teacher Name, Division #, Class Date
+ *   Teacher Name #1, Division #1     → students[0].teacherName / divisionNumber
+ *   Class Date #2 (1st) or #1        → students[0].classDate
+ *   Teacher Name #2, Division #2     → students[1].teacherName / divisionNumber
+ *   Class Date #2 (2nd occurrence)   → students[1].classDate, else student #1's date
  *   Order Tax, Order Total           → gstAmount, unitPrice = (total − tax) / students
  *   Order Status                     → orderStatus + paymentStatus
  *   Order Date                       → createdAt
  *   Product Name "Title (City)"      → product (+ city used to disambiguate schools)
  *   Season / Variation Attributes    → season + school, matched by slugified title
  *   Location, Schedule/Time, Weeks Selected → campVariationId (camp products)
- *   Class Date                       → classDate (order level, used in confirmations)
+ *   student #1's class date          → classDate (order level, used in confirmations)
  *   Order Note - Most Recent, Notes? → notes[]
  */
 import fs from 'fs'
@@ -190,11 +193,18 @@ function toIso(raw: string): string | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString()
 }
 
-/** Teacher / division / class date for student n, falling back to the order-level columns. */
-function perStudent(row: Row, n: number): Pick<Student, 'teacherName' | 'divisionNumber' | 'classDate'> {
-  const teacherName = get(row, `Teacher Name #${n}`, 'Teacher Name')
+/**
+ * Teacher / division / class date for student n. The export's first "Class Date #2"
+ * column holds student #1's date; the second one (" (2)") holds student #2's.
+ */
+function perStudent(row: Row, n: 1 | 2, fallbackClassDate = ''): Pick<Student, 'teacherName' | 'divisionNumber' | 'classDate'> {
+  const teacherName = n === 1
+    ? get(row, 'Teacher Name #1', 'Teacher Name')
+    : get(row, 'Teacher Name #2', 'Teacher Name #2 (2)', 'Teacher Name')
   const divisionNumber = get(row, `Division #${n}`, 'Division #')
-  const classDate = get(row, `Class Date #${n}`, 'Class Date')
+  const classDate = (n === 1
+    ? get(row, 'Class Date #2', 'Class Date #1', 'Class Date')
+    : get(row, 'Class Date #2 (2)')) || fallbackClassDate
   return {
     ...(teacherName ? { teacherName } : {}),
     ...(divisionNumber ? { divisionNumber } : {}),
@@ -206,6 +216,11 @@ function mapRow(row: Row): Mapped {
   const warnings: string[] = []
   const orderId = get(row, 'Order ID')
   const orderDate = toIso(get(row, 'Order Date'))
+
+  // Some rows have a name in the email column; keep the original in notes and use a
+  // placeholder on the reserved .invalid TLD so nothing is ever sent to it
+  const emailRaw = get(row, 'P/G Email')
+  const parentEmail = isEmail(emailRaw) ? emailRaw.toLowerCase() : `legacy-order-${orderId}@no-email.invalid`
 
   // Emergency contact — the legacy form sometimes got a phone number in the name field
   const ecNameRaw = get(row, 'E/C Name')
@@ -236,7 +251,7 @@ function mapRow(row: Row): Mapped {
       age: get(row, 'Student Age #2', 'Age #2') || undefined,
       emergencyContactName: get(row, 'Emergency Contact Name #2') || undefined,
       emergencyContactPhone: get(row, 'Emergency Contact Phone #2') || undefined,
-      ...perStudent(row, 2),
+      ...perStudent(row, 2, students[0]?.classDate),
     })
   }
 
@@ -249,6 +264,10 @@ function mapRow(row: Row): Mapped {
   const adminNote = get(row, 'Notes?')
   if (lastNote) notes.push({ note: lastNote, timestamp: orderDate, type: 'system' })
   if (adminNote) notes.push({ note: adminNote, timestamp: orderDate, type: 'admin' })
+  if (!isEmail(emailRaw)) {
+    notes.push({ note: `Legacy P/G Email field contained "${emailRaw}" (not a valid email); placeholder address assigned.`, timestamp: orderDate, type: 'admin' })
+    warnings.push(`invalid P/G Email "${emailRaw}" → ${parentEmail}`)
+  }
   if (ecNameRaw && !ecName) {
     notes.push({ note: `Legacy emergency contact name field contained "${ecNameRaw}".`, timestamp: orderDate, type: 'system' })
   }
@@ -271,7 +290,7 @@ function mapRow(row: Row): Mapped {
     data: {
       parentFirstName: get(row, 'P/G F/N'),
       parentLastName: get(row, 'P/G LN', 'P/G L/N'),
-      parentEmail: get(row, 'P/G Email').toLowerCase(),
+      parentEmail,
       parentPhone: get(row, 'Phone'),
       ...(ec.first ? { emergencyContactFirstName: ec.first } : {}),
       ...(ec.last ? { emergencyContactLastName: ec.last } : {}),
@@ -282,7 +301,7 @@ function mapRow(row: Row): Mapped {
       orderStatus,
       paymentStatus: paymentStatusFor(orderStatus),
       ...(unitPrice !== undefined ? { unitPrice, gstAmount: tax } : {}),
-      ...(get(row, 'Class Date', 'Schedule/Time') ? { classDate: get(row, 'Class Date', 'Schedule/Time') } : {}),
+      ...(students[0]?.classDate || get(row, 'Schedule/Time') ? { classDate: students[0]?.classDate || get(row, 'Schedule/Time') } : {}),
       ...(orderDate ? { createdAt: orderDate } : {}),
       notes,
     },
@@ -395,7 +414,7 @@ async function buildResolver(payload: Payload) {
 async function main() {
   const args = process.argv.slice(2)
   const dryRun = args.includes('--dry-run')
-  const csvPath = path.resolve(args.find((a) => !a.startsWith('--')) ?? 'data/legacy-export.csv')
+  const csvPath = path.resolve(args.find((a) => !a.startsWith('--')) ?? 'data/Order Items Export - 2026-09-26 (1).csv')
 
   if (!fs.existsSync(csvPath)) {
     console.error(`CSV not found: ${csvPath}`)
