@@ -1,6 +1,5 @@
-import { getPayload } from 'payload'
+import { getPayload, type RequiredDataFromCollectionSlug } from 'payload'
 import config from '../payload.config'
-import type { Role } from '../payload-types'
 import { OPERATIONS, PERMISSION_COLLECTIONS, type Operation, type PermissionCollection } from './access'
 
 // Default custom roles; re-running only creates the ones that are missing, so
@@ -46,7 +45,7 @@ async function main() {
       console.log(`exists  ${role.name}`)
       continue
     }
-    await payload.create({ collection: 'roles', data: role as Omit<Role, 'id' | 'createdAt' | 'updatedAt'> })
+    await payload.create({ collection: 'roles', data: role as RequiredDataFromCollectionSlug<'roles'> })
     console.log(`created ${role.name}`)
   }
   process.exit(0)
