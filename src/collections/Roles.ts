@@ -11,7 +11,7 @@ export const Roles: CollectionConfig = {
     useAsTitle: 'name',
     defaultColumns: ['name', 'description', 'updatedAt'],
     description:
-      'Custom roles for site administrators. A site admin with one or more roles gets exactly the permissions ticked here (combined across roles) for these collections.',
+      'Custom roles for site administrators. A site admin with one or more roles gets exactly the permissions ticked here (combined across roles).',
   },
   fields: [
     { name: 'name', type: 'text', required: true, unique: true },
@@ -19,14 +19,14 @@ export const Roles: CollectionConfig = {
     {
       name: 'permissions',
       type: 'group',
-      fields: PERMISSION_COLLECTIONS.map(({ slug, label }) => ({
-        name: slug,
-        label,
+      fields: PERMISSION_COLLECTIONS.map((entry) => ({
+        name: entry.key,
+        label: entry.label,
         type: 'group' as const,
         fields: [
           {
             type: 'row' as const,
-            fields: OPERATIONS.map((op) => ({
+            fields: ('ops' in entry ? entry.ops : OPERATIONS).map((op) => ({
               name: op,
               type: 'checkbox' as const,
               defaultValue: false,

@@ -1,9 +1,9 @@
 import type { GlobalConfig } from 'payload'
-import { staff } from '../access'
+import { roleGlobal } from '../access'
 
 export const HeaderSettings: GlobalConfig = {
   slug: 'header-settings',
-  access: { read: staff, update: staff },
+  access: roleGlobal('headerSettings'),
   label: 'Header Settings',
   admin: { group: 'Settings' },
   fields: [

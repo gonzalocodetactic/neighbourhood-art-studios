@@ -1,9 +1,9 @@
 import type { CollectionConfig } from 'payload'
-import { staffCrud } from '../access'
+import { roleCrud } from '../access'
 
 export const Seasons: CollectionConfig = {
   slug: 'seasons',
-  access: staffCrud,
+  access: roleCrud('seasons'),
   admin: {
     group: 'Attributes',
     useAsTitle: 'title',

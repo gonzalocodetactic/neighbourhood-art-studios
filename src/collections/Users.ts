@@ -127,7 +127,7 @@ export const Users: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description:
-          'Site admins only. Leave empty for full site-admin access; otherwise access to registrations, products, schools, users, locations and waitlists comes from these roles.',
+          'Site admins only. Leave empty for full site-admin access; otherwise their access to every collection comes from these roles (system settings stay super-admin only).',
         condition: (data) => data?.role !== 'super-admin',
       },
     },

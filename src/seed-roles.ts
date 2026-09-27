@@ -5,29 +5,36 @@ import { OPERATIONS, PERMISSION_COLLECTIONS, type Operation, type PermissionColl
 
 // Default custom roles; re-running only creates the ones that are missing, so
 // edits made in the admin are never overwritten
-const grant = (allow: (slug: PermissionCollection, op: Operation) => boolean) =>
+const grant = (allow: (key: PermissionCollection, op: Operation) => boolean) =>
   Object.fromEntries(
-    PERMISSION_COLLECTIONS.map(({ slug }) => [
-      slug,
-      Object.fromEntries(OPERATIONS.map((op) => [op, allow(slug, op)])),
+    PERMISSION_COLLECTIONS.map(({ key }) => [
+      key,
+      Object.fromEntries(OPERATIONS.map((op) => [op, allow(key, op)])),
     ]),
   )
 
-const ROLES = [
+// What a teacher needs to make sense of class lists: the registrations plus reference data
+const ROSTER_READ: PermissionCollection[] = [
+  'registrations', 'schools', 'locations', 'waitlist', 'seasons', 'cities', 'timeslots', 'campWeeks',
+]
+
+export const ROLES = [
   {
     name: 'Super Admin',
-    description: 'Full create, read, update and delete on every managed collection, including users.',
+    description:
+      'Full access to every collection, header and footer settings, including users. System settings (payments, email) still need the built-in Super Administrator role.',
     permissions: grant(() => true),
   },
   {
     name: 'Site Administrator',
-    description: 'Day-to-day business: full access to registrations, products, schools, locations and waitlists. No user management.',
-    permissions: grant((slug) => slug !== 'users'),
+    description: 'Day-to-day business: full access to every collection plus header and footer settings, except users.',
+    permissions: grant((key) => key !== 'users'),
   },
   {
     name: 'Roster Viewer',
-    description: 'Read-only access to registrations, schools, locations and waitlists, for teachers checking class lists.',
-    permissions: grant((slug, op) => op === 'read' && slug !== 'users' && slug !== 'products'),
+    description:
+      'Read-only access to registrations, waitlists, schools, locations, seasons, cities, timeslots and camp weeks, for teachers checking class lists.',
+    permissions: grant((key, op) => op === 'read' && ROSTER_READ.includes(key)),
   },
 ]
 
@@ -45,7 +52,9 @@ async function main() {
   process.exit(0)
 }
 
-main().catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+if (process.argv[1]?.endsWith('seed-roles.ts')) {
+  main().catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })
+}

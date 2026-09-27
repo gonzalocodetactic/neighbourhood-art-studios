@@ -29,49 +29,50 @@ export const superAdmin: Access = ({ req }) => isSuperAdmin(req.user)
 
 export const anyone: Access = () => true
 
-/** Staff see everything; a user of this collection sees only their own document. */
-export const staffOrSelf =
-  (collection: string): Access =>
-  ({ req: { user } }) => {
-    if (isStaff(user)) return true
-    if (user?.collection === collection) return { id: { equals: user.id } }
-    return false
-  }
-
 export const superAdminField: FieldAccess = ({ req }) => isSuperAdmin(req.user)
-
-/** Full CRUD for staff (both roles). */
-export const staffCrud = { read: staff, create: staff, update: staff, delete: staff }
 
 // ── Custom role permissions ─────────────────────────────────────────────────
 
+/** Collections and globals whose access comes from role permissions */
 export const PERMISSION_COLLECTIONS = [
-  { slug: 'registrations', label: 'Registrations' },
-  { slug: 'products', label: 'Products' },
-  { slug: 'schools', label: 'Schools' },
-  { slug: 'users', label: 'Users' },
-  { slug: 'locations', label: 'Locations' },
-  { slug: 'waitlist', label: 'Waitlists' },
+  { key: 'registrations', label: 'Registrations' },
+  { key: 'products', label: 'Products' },
+  { key: 'schools', label: 'Schools' },
+  { key: 'users', label: 'Users' },
+  { key: 'locations', label: 'Locations' },
+  { key: 'waitlist', label: 'Waitlists' },
+  { key: 'parents', label: 'Parents' },
+  { key: 'seasons', label: 'Seasons' },
+  { key: 'cities', label: 'Cities' },
+  { key: 'timeslots', label: 'Timeslots' },
+  { key: 'campWeeks', label: 'Camp Weeks' },
+  { key: 'pages', label: 'Pages' },
+  { key: 'forms', label: 'Forms' },
+  // Files are public on the site, so only create/update/delete apply
+  { key: 'media', label: 'Media', ops: ['create', 'update', 'delete'] },
+  // Globals: a single document, so only read/update apply
+  { key: 'headerSettings', label: 'Header Settings', ops: ['read', 'update'] },
+  { key: 'footerSettings', label: 'Footer Settings', ops: ['read', 'update'] },
 ] as const
 
 export const OPERATIONS = ['create', 'read', 'update', 'delete'] as const
 
-export type PermissionCollection = (typeof PERMISSION_COLLECTIONS)[number]['slug']
+export type PermissionCollection = (typeof PERMISSION_COLLECTIONS)[number]['key']
 export type Operation = (typeof OPERATIONS)[number]
 export type Permissions = Record<PermissionCollection, Record<Operation, boolean>>
 
-const buildPermissions = (grant: (slug: PermissionCollection, op: Operation) => boolean): Permissions =>
+const buildPermissions = (grant: (key: PermissionCollection, op: Operation) => boolean): Permissions =>
   Object.fromEntries(
-    PERMISSION_COLLECTIONS.map(({ slug }) => [
-      slug,
-      Object.fromEntries(OPERATIONS.map((op) => [op, grant(slug, op)])),
+    PERMISSION_COLLECTIONS.map(({ key }) => [
+      key,
+      Object.fromEntries(OPERATIONS.map((op) => [op, grant(key, op)])),
     ]),
   ) as Permissions
 
 const NO_PERMISSIONS = buildPermissions(() => false)
 const ALL_PERMISSIONS = buildPermissions(() => true)
 /** What a site admin without custom roles has always had: business data, not users */
-const SITE_ADMIN_PERMISSIONS = buildPermissions((slug) => slug !== 'users')
+const SITE_ADMIN_PERMISSIONS = buildPermissions((key) => key !== 'users')
 
 const idOf = (v: unknown): number | string | undefined =>
   v && typeof v === 'object' ? (v as { id?: number | string }).id : (v as number | string | undefined)
@@ -99,8 +100,8 @@ export async function permissionsFor(
     overrideAccess: true,
     req,
   })
-  return buildPermissions((slug, op) =>
-    docs.some((doc) => Boolean((doc.permissions as Partial<Permissions> | undefined)?.[slug]?.[op])),
+  return buildPermissions((key, op) =>
+    docs.some((doc) => Boolean((doc.permissions as Partial<Permissions> | undefined)?.[key]?.[op])),
   )
 }
 
@@ -129,7 +130,22 @@ export async function can(
 
 /** True when every permission in `inner` is also granted by `outer`. */
 export const isSubset = (inner: Permissions, outer: Permissions): boolean =>
-  PERMISSION_COLLECTIONS.every(({ slug }) => OPERATIONS.every((op) => !inner[slug][op] || outer[slug][op]))
+  PERMISSION_COLLECTIONS.every(({ key }) => OPERATIONS.every((op) => !inner[key][op] || outer[key][op]))
+
+/** Role permission for staff; otherwise an auth collection's own user sees only their own document. */
+export const roleOrSelf =
+  (collection: PermissionCollection, op: Operation): Access =>
+  async ({ req }) => {
+    if (await can(req, collection, op)) return true
+    if (req.user?.collection === collection) return { id: { equals: req.user.id } }
+    return false
+  }
+
+/** Read/update access for a global, evaluated against the user's role permissions. */
+export const roleGlobal = (key: PermissionCollection) => ({
+  read: (({ req }) => can(req, key, 'read')) as Access,
+  update: (({ req }) => can(req, key, 'update')) as Access,
+})
 
 /** CRUD access evaluated against the user's role permissions for one collection. */
 export const roleCrud = (collection: PermissionCollection) => ({
