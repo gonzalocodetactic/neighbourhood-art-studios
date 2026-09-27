@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import configPromise from '@payload-config'
-import { createLocalReq, getPayload } from 'payload'
-import { headers as nextHeaders } from 'next/headers'
-import { can } from '@/access'
+import { getPayload } from 'payload'
+import { currentUserCan } from '@/access/server'
 
 export async function POST(request: NextRequest) {
   const payload = await getPayload({ config: configPromise })
-  const { user } = await payload.auth({ headers: await nextHeaders() })
-  const req = await createLocalReq({ user: user ?? undefined }, payload)
-  if (!(await can(req, 'products', 'update'))) {
+  if (!(await currentUserCan(payload, 'products', 'update'))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

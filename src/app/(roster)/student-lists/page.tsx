@@ -1,7 +1,7 @@
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { isStaff } from '@/access'
+import { currentUserCan } from '@/access/server'
 import PasswordGate from './PasswordGate'
 import RosterClient, { type RosterRow } from './RosterClient'
 
@@ -21,12 +21,12 @@ const ACTIVE_ORDER_STATUSES = ['processing', 'completed']
 
 export default async function StudentListsPage() {
   // ── Auth check ─────────────────────────────────────────────────────────────
-  // Signed-in admins (either role) get straight in; others use the shared roster password
+  // Signed-in admins whose role can read registrations get straight in; others use the shared roster password
   const payload = await getPayload({ config: configPromise })
-  const { user } = await payload.auth({ headers: await headers() })
   const store = await cookies()
   const expected = process.env.ROSTER_PASSWORD ?? 'art-studios'
-  const isAuthed = isStaff(user) || store.get('roster_auth')?.value === expected
+  const isAuthed =
+    (await currentUserCan(payload, 'registrations', 'read')) || store.get('roster_auth')?.value === expected
 
   if (!isAuthed) return <PasswordGate />
 

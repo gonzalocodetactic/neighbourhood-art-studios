@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
-import { headers as nextHeaders } from 'next/headers'
+import { currentUserCan } from '@/access/server'
 
 function getDateRange(range: string, from?: string | null, to?: string | null): { start: Date; end: Date } {
   const now = new Date()
@@ -153,9 +153,9 @@ function aggregateRegs(paidRegs: any[], allRegs: any[], capacityMap: Map<string,
 
 export async function GET(request: NextRequest) {
   const payload = await getPayload({ config: configPromise })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { user } = await (payload as any).auth({ headers: await nextHeaders(), collection: 'users' })
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await currentUserCan(payload, 'analytics', 'read'))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const { searchParams } = new URL(request.url)
   const range = searchParams.get('range') ?? 'month'

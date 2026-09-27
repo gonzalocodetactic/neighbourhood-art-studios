@@ -1,7 +1,11 @@
 import type { AdminViewServerProps } from 'payload'
+import { can } from '@/access'
 import AnalyticsDashboardClient, { type AnalyticsData } from './AnalyticsDashboardClient'
+import { NotAllowed } from './NotAllowed'
 
 export async function AnalyticsDashboard(props: AdminViewServerProps) {
+  if (!(await can(props.initPageResult.req, 'analytics', 'read'))) return <NotAllowed what="analytics" />
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { payload } = props as any
 

@@ -1,25 +1,10 @@
-'use client'
+import type { ServerProps } from 'payload'
+import { createLocalReq } from 'payload'
+import { can } from '@/access'
+import { StudentListsNavLinkClient } from './StudentListsNavLinkClient'
 
-export function StudentListsNavLink() {
-  return (
-    <div style={{ padding: '0 16px', marginTop: 4 }}>
-      <a
-        href="/student-lists"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          display: 'block',
-          padding: '8px 12px',
-          borderRadius: 6,
-          fontSize: 14,
-          fontWeight: 400,
-          color: 'var(--theme-elevation-700)',
-          textDecoration: 'none',
-          transition: 'background 0.15s',
-        }}
-      >
-        Student Lists
-      </a>
-    </div>
-  )
+export async function StudentListsNavLink({ payload, user }: ServerProps) {
+  if (!user) return null
+  const req = await createLocalReq({ user }, payload)
+  return (await can(req, 'registrations', 'read')) ? <StudentListsNavLinkClient /> : null
 }

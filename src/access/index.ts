@@ -50,6 +50,8 @@ export const PERMISSION_COLLECTIONS = [
   { key: 'forms', label: 'Forms' },
   // Files are public on the site, so only create/update/delete apply
   { key: 'media', label: 'Media', ops: ['create', 'update', 'delete'] },
+  // Admin dashboard with sales and tax figures
+  { key: 'analytics', label: 'Analytics', ops: ['read'] },
   // Globals: a single document, so only read/update apply
   { key: 'headerSettings', label: 'Header Settings', ops: ['read', 'update'] },
   { key: 'footerSettings', label: 'Footer Settings', ops: ['read', 'update'] },

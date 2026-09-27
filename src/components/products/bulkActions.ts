@@ -2,6 +2,7 @@
 
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
+import { currentUserCan } from '@/access/server'
 
 export type GenerateResult =
   | { success: true; created: number; skipped: number }
@@ -21,6 +22,7 @@ export async function generateVariations(
 ): Promise<GenerateResult> {
   try {
     const payload = await getPayload({ config: configPromise })
+    if (!(await currentUserCan(payload, 'products', 'update'))) return { success: false, error: 'Not allowed' }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const product = await payload.findByID({ collection: 'products', id: productId, depth: 1 }) as any
@@ -67,6 +69,7 @@ export async function bulkUpdateVariations(
 ): Promise<BulkUpdateResult> {
   try {
     const payload = await getPayload({ config: configPromise })
+    if (!(await currentUserCan(payload, 'products', 'update'))) return { success: false, error: 'Not allowed' }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const product = await payload.findByID({ collection: 'products', id: productId, depth: 0 }) as any

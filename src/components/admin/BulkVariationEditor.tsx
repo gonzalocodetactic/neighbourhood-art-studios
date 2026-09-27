@@ -1,7 +1,13 @@
 import type { AdminViewServerProps } from 'payload'
+import { can } from '@/access'
 import BulkVariationEditorClient from './BulkVariationEditorClient'
+import { NotAllowed } from './NotAllowed'
 
 export async function BulkVariationEditor(props: AdminViewServerProps) {
+  if (!(await can(props.initPageResult.req, 'products', 'update'))) {
+    return <NotAllowed what="bulk-editing product variations" />
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { payload } = props as any
 
