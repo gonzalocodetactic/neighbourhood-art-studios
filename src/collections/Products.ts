@@ -34,6 +34,12 @@ export const Products: CollectionConfig = {
       required: true,
     },
     {
+      name: 'slug',
+      type: 'text',
+      unique: true,
+      admin: { position: 'sidebar' },
+    },
+    {
       name: 'productType',
       type: 'select',
       defaultValue: 'in-school',

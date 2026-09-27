@@ -1119,6 +1119,7 @@ export default function RegisterClient({
 
   // camp flow state
   const [programType, setProgramType] = useState<'school' | 'camp'>('school')
+  const [campProductId, setCampProductId] = useState('')
   const [campLocationId, setCampLocationId] = useState('')
   const [campTimeslotId, setCampTimeslotId] = useState('')
   const [campWeekId, setCampWeekId] = useState('')
@@ -1180,7 +1181,36 @@ export default function RegisterClient({
   }
 
   // ── Camp derived state ────────────────────────────────────────────────────────
-  const filteredCampSessions = campSessions.filter((s) => {
+  // One selector button per camp product that has sessions (e.g. Spring / Summer Art Camps)
+  const campProducts = [
+    ...new Map(campSessions.map((s) => [String(s.productId), s.productTitle])).entries(),
+  ]
+    .map(([id, title]) => ({ id, title }))
+    .sort((a, b) => a.title.localeCompare(b.title))
+
+  // Only offer the locations / times / weeks the selected camp product actually runs
+  const productCampSessions = campSessions.filter((s) => String(s.productId) === campProductId)
+  const offered = (key: 'locationId' | 'timeslotId' | 'campWeekId') =>
+    new Set(productCampSessions.map((s) => String(s[key])))
+  const offeredLocations = offered('locationId')
+  const offeredTimeslots = offered('timeslotId')
+  const offeredWeeks = offered('campWeekId')
+  const productCampLocations = campLocations.filter((l) => offeredLocations.has(String(l.id)))
+  const productCampTimeslots = campTimeslots.filter((t) => offeredTimeslots.has(String(t.id)))
+  const productCampWeeks = campWeeks.filter((w) => offeredWeeks.has(String(w.id)))
+  // Sessions without a timeslot (e.g. Spring camps) skip the time step
+  const productHasTimes = productCampTimeslots.length > 0
+  const showCampWeeks = productHasTimes ? Boolean(campTimeslotId) : Boolean(campLocationId)
+
+  function selectCampProduct(id: string) {
+    setProgramType('camp')
+    setCampProductId(id)
+    setCampLocationId('')
+    setCampTimeslotId('')
+    setCampWeekId('')
+  }
+
+  const filteredCampSessions = productCampSessions.filter((s) => {
     if (campLocationId && String(s.locationId) !== campLocationId) return false
     if (campTimeslotId && String(s.timeslotId) !== campTimeslotId) return false
     if (campWeekId && String(s.campWeekId) !== campWeekId) return false
@@ -1385,7 +1415,7 @@ export default function RegisterClient({
         {/* ── Program type selector ─────────────────────────────────────────── */}
         <div className="mb-10">
           <label className="block text-sm font-bold text-gray-700 mb-3">What type of program are you looking for?</label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={`grid grid-cols-2 gap-3 ${campProducts.length > 1 ? 'sm:grid-cols-3' : ''}`}>
             <button
               type="button"
               onClick={() => setProgramType('school')}
@@ -1400,20 +1430,26 @@ export default function RegisterClient({
               </p>
               <p className="text-xs text-gray-500 mt-0.5">Weekday programs at your school</p>
             </button>
-            <button
-              type="button"
-              onClick={() => setProgramType('camp')}
-              className={`px-4 py-4 rounded-xl border-2 text-left transition-all ${
-                programType === 'camp'
-                  ? 'border-[#3B4BC8] bg-[#3B4BC8]/5'
-                  : 'border-gray-200 hover:border-[#3B4BC8]/40'
-              }`}
-            >
-              <p className={`text-sm font-bold ${programType === 'camp' ? 'text-[#3B4BC8]' : 'text-gray-700'}`}>
-                Spring &amp; Summer Art Camps
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">Full-day camp sessions</p>
-            </button>
+            {campProducts.map((p) => {
+              const selected = programType === 'camp' && campProductId === p.id
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => selectCampProduct(p.id)}
+                  className={`px-4 py-4 rounded-xl border-2 text-left transition-all ${
+                    selected
+                      ? 'border-[#3B4BC8] bg-[#3B4BC8]/5'
+                      : 'border-gray-200 hover:border-[#3B4BC8]/40'
+                  }`}
+                >
+                  <p className={`text-sm font-bold ${selected ? 'text-[#3B4BC8]' : 'text-gray-700'}`}>
+                    {p.title}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">Full-day camp sessions</p>
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -1554,7 +1590,7 @@ export default function RegisterClient({
                 Select a location
               </label>
               <div className="flex flex-wrap gap-2">
-                {campLocations.map((loc) => (
+                {productCampLocations.map((loc) => (
                   <button
                     key={loc.id}
                     type="button"
@@ -1568,21 +1604,21 @@ export default function RegisterClient({
                     {loc.name}{loc.city ? ` · ${loc.city}` : ''}
                   </button>
                 ))}
-                {campLocations.length === 0 && (
+                {productCampLocations.length === 0 && (
                   <p className="text-sm text-gray-400">No camp locations available yet.</p>
                 )}
               </div>
             </div>
 
             {/* Timeslot */}
-            {campLocationId && (
+            {campLocationId && productHasTimes && (
               <div className="mb-7 animate-in fade-in duration-200">
                 <label className="block text-sm font-bold text-gray-700 mb-2">
                   <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">2</span>
                   Select a time
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {campTimeslots.map((ts) => (
+                  {productCampTimeslots.map((ts) => (
                     <button
                       key={ts.id}
                       type="button"
@@ -1601,14 +1637,14 @@ export default function RegisterClient({
             )}
 
             {/* Week */}
-            {campTimeslotId && (
+            {showCampWeeks && (
               <div className="mb-10 animate-in fade-in duration-200">
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">3</span>
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#3B4BC8] text-white text-[10px] font-bold mr-2">{productHasTimes ? 3 : 2}</span>
                   Select a week
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {campWeeks.map((w) => (
+                  {productCampWeeks.map((w) => (
                     <button
                       key={w.id}
                       type="button"
