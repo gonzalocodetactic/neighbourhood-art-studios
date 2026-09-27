@@ -86,9 +86,12 @@ export default buildConfig({
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
+  // Local dev: file:./payload.db. Production (Vercel): a Turso libsql:// URL plus
+  // DATABASE_AUTH_TOKEN, since serverless functions can't write to a local file
   db: sqliteAdapter({
     client: {
       url: process.env.DATABASE_URI || '',
+      authToken: process.env.DATABASE_AUTH_TOKEN,
     },
   }),
 })
