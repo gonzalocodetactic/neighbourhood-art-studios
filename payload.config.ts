@@ -1,4 +1,5 @@
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
+import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { buildConfig } from 'payload'
@@ -81,6 +82,18 @@ export default buildConfig({
     CampWeeks,
   ],
   globals: [PaymentSettings, HeaderSettings, FooterSettings, EmailSettings],
+  plugins: [
+    // Vercel's filesystem is read-only, so uploads go to Vercel Blob when a token is set.
+    // Without one (local dev) files stay in public/media. URLs are /api/media/file/<name>
+    // either way; upload existing files with src/scripts/upload-media-to-blob.ts
+    vercelBlobStorage({
+      enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      collections: { media: true },
+      // Same schema with or without the token, so the local DB can seed production
+      alwaysInsertFields: true,
+    }),
+  ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
