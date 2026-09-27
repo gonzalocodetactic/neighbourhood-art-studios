@@ -13,6 +13,7 @@ import { Pages } from './src/collections/Pages'
 import { Parents } from './src/collections/Parents'
 import { Products } from './src/collections/Products'
 import { Registrations } from './src/collections/Registrations'
+import { Roles } from './src/collections/Roles'
 import { Schools } from './src/collections/Schools'
 import { Seasons } from './src/collections/Seasons'
 import { Timeslots } from './src/collections/Timeslots'
@@ -64,6 +65,7 @@ export default buildConfig({
   },
   collections: [
     Users,
+    Roles,
     Media,
     Pages,
     Cities,

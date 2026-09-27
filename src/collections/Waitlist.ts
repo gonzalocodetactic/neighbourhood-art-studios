@@ -1,9 +1,9 @@
 import type { CollectionConfig } from 'payload'
-import { staffCrud } from '../access'
+import { roleCrud } from '../access'
 
 export const Waitlist: CollectionConfig = {
   slug: 'waitlist',
-  access: staffCrud,
+  access: roleCrud('waitlist'),
   admin: {
     group: 'Main',
     useAsTitle: 'parentEmail',
