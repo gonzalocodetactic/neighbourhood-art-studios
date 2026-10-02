@@ -4,6 +4,9 @@ import { getPayload } from 'payload'
 import RegisterClient, { type RegisterPageData } from './RegisterClient'
 import { getPaymentSettings } from '@/lib/getPaymentSettings'
 
+// Render per request so enrollment counts and product changes show without a rebuild
+export const dynamic = 'force-dynamic'
+
 function getId(val: unknown): number | string {
   if (val && typeof val === 'object' && 'id' in val) return (val as { id: number | string }).id
   return val as number | string
@@ -66,6 +69,9 @@ export default async function RegisterPage() {
     payload.find({ collection: 'camp-weeks', limit: 200, sort: 'startDate' }).catch(() => ({ docs: [] })),
   ])
 
+  // Products ticked "Hide from Register Page" in the admin are left off entirely
+  const products = productsRes.docs.filter((p) => !p.hideFromRegister)
+
   // ── Build enrollment count map keyed by `productId-schoolId-seasonId` ────
   const enrolledMap = new Map<string, number>()
   for (const reg of regsRes.docs) {
@@ -114,7 +120,7 @@ export default async function RegisterPage() {
 
   // Camp / session variations live inside camp-type products
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const campSessions: RegisterPageData['campSessions'] = (productsRes.docs as any[])
+  const campSessions: RegisterPageData['campSessions'] = (products as any[])
     .filter((p) => p.productType === 'camp')
     .flatMap((p) =>
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -143,7 +149,7 @@ export default async function RegisterPage() {
 
   // ── Flatten product variations ────────────────────────────────────────────
   const variations: RegisterPageData['variations'] = []
-  for (const product of productsRes.docs) {
+  for (const product of products) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((product as any).productType === 'camp') continue
     for (const v of product.variations ?? []) {

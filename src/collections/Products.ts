@@ -40,6 +40,13 @@ export const Products: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
+      name: 'hideFromRegister',
+      type: 'checkbox',
+      label: 'Hide from Register Page',
+      defaultValue: false,
+      admin: { position: 'sidebar' },
+    },
+    {
       name: 'productType',
       type: 'select',
       defaultValue: 'in-school',
