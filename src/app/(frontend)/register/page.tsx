@@ -27,6 +27,15 @@ function getLabel(val: unknown): string {
   return ''
 }
 
+// Checkout, saved registrations and re-enroll pre-fill all use these exact keys.
+// Match a form's field name to one of them regardless of case/spacing ("Age" → "age").
+const STUDENT_KEYS = ['firstName', 'lastName', 'age', 'gender', 'grade', 'teacherName', 'divisionNumber']
+
+function studentKey(fieldName: string): string {
+  const normalized = fieldName.replace(/\s+/g, '').toLowerCase()
+  return STUDENT_KEYS.find((k) => k.toLowerCase() === normalized) ?? fieldName
+}
+
 export default async function RegisterPage() {
   const payload = await getPayload({ config: configPromise })
 
@@ -165,7 +174,7 @@ export default async function RegisterPage() {
           ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
             form.perStudentFields.map((f: any) => ({
               label: f.label ?? '',
-              fieldName: f.fieldName ?? '',
+              fieldName: studentKey(f.fieldName ?? ''),
               fieldType: (f.fieldType ?? 'text') as 'text' | 'number' | 'select' | 'checkbox',
               required: f.required ?? false,
               placeholder: f.placeholder || undefined,
