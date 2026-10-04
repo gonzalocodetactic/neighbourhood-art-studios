@@ -43,15 +43,6 @@ body {
   transform: rotateY(180deg);
 }
 
-/* ── Stacked photos cascade ─────────────────────────────────────────────────── */
-.cascade-wrap {
-  position: relative;
-}
-.cascade-wrap .cascade-img:nth-child(1) { z-index: 4; transform: rotate(-3deg) translate(0, 0); }
-.cascade-wrap .cascade-img:nth-child(2) { z-index: 3; transform: rotate(2.5deg) translate(60px, 30px); }
-.cascade-wrap .cascade-img:nth-child(3) { z-index: 2; transform: rotate(-1.5deg) translate(20px, 60px); }
-.cascade-wrap .cascade-img:nth-child(4) { z-index: 1; transform: rotate(4deg) translate(80px, 50px); }
-
 /* ── Horizontal image slider ─────────────────────────────────────────────────── */
 @keyframes slider-scroll {
   0%   { transform: translateX(0); }

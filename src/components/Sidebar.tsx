@@ -134,30 +134,23 @@ export default function Sidebar({
               <li key={item.url}>
                 {hasChildren ? (
                   <>
-                    {/* Row: link + chevron toggle */}
-                    <div className="flex items-center">
-                      <Link
-                        href={item.url}
-                        className={`flex-1 flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium tracking-wide rounded-l transition-colors ${
-                          parentActive
-                            ? 'text-[#3B4BC8] font-semibold'
-                            : 'text-gray-600 hover:text-gray-900'
-                        }`}
-                      >
-                        {item.icon && <span>{item.icon}</span>}
-                        {item.label}
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => toggleItem(item.url)}
-                        aria-label={open ? `Collapse ${item.label}` : `Expand ${item.label}`}
-                        className={`px-1.5 py-1.5 rounded-r transition-colors ${
-                          parentActive ? 'text-[#3B4BC8]' : 'text-gray-400 hover:text-gray-700'
-                        }`}
-                      >
+                    {/* Parent is an accordion label, not a link — only its children navigate */}
+                    <button
+                      type="button"
+                      onClick={() => toggleItem(item.url)}
+                      aria-expanded={open}
+                      className={`w-full flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-medium tracking-wide rounded transition-colors ${
+                        parentActive
+                          ? 'text-[#3B4BC8] font-semibold'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {item.icon && <span>{item.icon}</span>}
+                      <span className="flex-1 text-left">{item.label}</span>
+                      <span className={`px-1.5 ${parentActive ? 'text-[#3B4BC8]' : 'text-gray-400'}`}>
                         <ChevronIcon open={open} />
-                      </button>
-                    </div>
+                      </span>
+                    </button>
 
                     {/* Children */}
                     {open && (

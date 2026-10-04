@@ -25,17 +25,33 @@ const PLACEHOLDER_GRADIENTS = [
   'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
 ]
 
-// Fixed rotation/offset values per image position for the cascade effect
+// Position, rotation and stacking per image, in % of the media column so the
+// stack scales with its 50% column. Each photo is 56% of the column wide (4:5);
+// offsets keep the whole stack inside the 6:5 frame.
 const CASCADE_STYLES = [
-  { top: 0, left: 0, rotate: -3 },
-  { top: 32, left: 64, rotate: 2.5 },
-  { top: 64, left: 24, rotate: -1.5 },
-  { top: 48, left: 88, rotate: 4 },
+  { top: '0%', left: '0%', rotate: -3, z: 4 },
+  { top: '8%', left: '44%', rotate: 2.5, z: 3 },
+  { top: '16%', left: '18%', rotate: -1.5, z: 2 },
+  { top: '12%', left: '30%', rotate: 4, z: 1 },
 ]
 
 function CascadeStack({ images }: { images: ImageItem[] }) {
+  // A single photo just fills the column
+  if (images.length === 1) {
+    const url = getMediaUrl(images[0].image)
+    return (
+      <div className="w-full aspect-[6/5] overflow-hidden shadow-lg">
+        {url ? (
+          <img src={url} alt={getMediaAlt(images[0].image)} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full" style={{ background: PLACEHOLDER_GRADIENTS[0] }} />
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="relative h-80 w-full cascade-wrap">
+    <div className="relative w-full aspect-[6/5]">
       {images.slice(0, 4).map((item, i) => {
         const url = getMediaUrl(item.image)
         const alt = getMediaAlt(item.image)
@@ -44,10 +60,11 @@ function CascadeStack({ images }: { images: ImageItem[] }) {
         return (
           <div
             key={item.id ?? i}
-            className="cascade-img absolute w-44 h-56 shadow-lg"
+            className="absolute w-[56%] aspect-[4/5] shadow-lg"
             style={{
               top: style.top,
               left: style.left,
+              zIndex: style.z,
               transform: `rotate(${style.rotate}deg)`,
             }}
           >
@@ -102,7 +119,8 @@ export function CascadingMediaContent({
 
   return (
     <section className="py-16 px-12">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center w-full">
+      {/* Exact 50/50: equal fractional columns, media column fills its half */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center w-full">
         {direction === 'imageLeft' ? (
           <>
             <div className="col-span-1 w-full">{mediaCol}</div>
