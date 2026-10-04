@@ -725,6 +725,8 @@ function RegistrationModal({
                         ) : (
                           <input
                             type={field.fieldType === 'number' ? 'number' : 'text'}
+                            // A focused number field changes value on mouse-wheel scroll; drop focus so the page scrolls instead
+                            onWheel={field.fieldType === 'number' ? (e) => e.currentTarget.blur() : undefined}
                             required={field.required}
                             placeholder={field.placeholder ?? ''}
                             value={student[field.fieldName] ?? ''}

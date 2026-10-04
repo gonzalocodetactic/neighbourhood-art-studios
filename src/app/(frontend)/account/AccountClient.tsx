@@ -13,6 +13,18 @@ type Student = {
   divisionNumber: string
 }
 
+// Age as of today: add a year for each year since the registration it was recorded on.
+// 11+ months counts as a year, so last fall's class rolls into this fall's.
+// Parents can still correct it in the form.
+function ageSince(age: string, recordedAt: string): string {
+  const n = parseInt(age, 10)
+  const then = new Date(recordedAt)
+  if (Number.isNaN(n) || Number.isNaN(then.getTime())) return age
+  const now = new Date()
+  const months = (now.getFullYear() - then.getFullYear()) * 12 + (now.getMonth() - then.getMonth())
+  return String(n + Math.max(0, Math.floor((months + 1) / 12)))
+}
+
 type Registration = {
   id: string
   productTitle: string
@@ -298,7 +310,7 @@ export default function AccountClient({
       id: student.id,
       firstName: student.firstName,
       lastName: student.lastName,
-      age: student.age,
+      age: ageSince(student.age, r.createdAt),
       grade: student.grade,
       teacherName: student.teacherName,
       divisionNumber: student.divisionNumber,
