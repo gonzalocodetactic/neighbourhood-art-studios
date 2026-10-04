@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { roleCrud } from '../access'
+import { sendWaitlistInvite } from '../emails/sendWaitlistInvite'
 
 export const Waitlist: CollectionConfig = {
   slug: 'waitlist',
@@ -8,6 +9,20 @@ export const Waitlist: CollectionConfig = {
     group: 'Main',
     useAsTitle: 'parentEmail',
     defaultColumns: ['parentName', 'parentEmail', 'product', 'status', 'createdAt'],
+  },
+  hooks: {
+    afterChange: [
+      // Email the parent when staff move an entry to "Invited"
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async ({ doc, previousDoc, operation, req }: any) => {
+        if (operation !== 'update' || doc.status !== 'invited' || previousDoc?.status === 'invited') return
+        try {
+          await sendWaitlistInvite(req.payload, doc)
+        } catch (err) {
+          console.error('Waitlist invite email failed:', err)
+        }
+      },
+    ],
   },
   fields: [
     {
@@ -94,6 +109,9 @@ export const Waitlist: CollectionConfig = {
         { label: 'Invited', value: 'invited' },
         { label: 'Expired', value: 'expired' },
       ],
+      admin: {
+        description: 'Changing this to "Invited" emails the parent a link to register.',
+      },
     },
     {
       name: 'notes',

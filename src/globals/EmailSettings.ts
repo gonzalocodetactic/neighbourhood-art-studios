@@ -65,5 +65,15 @@ export const EmailSettings: GlobalConfig = {
         { name: 'resetIntro', type: 'textarea', defaultValue: 'Click the button below to reset your password. This link expires in 1 hour.' },
       ],
     },
+    {
+      type: 'collapsible',
+      label: 'Waitlist Invite Email',
+      admin: { description: 'Sent to the parent when a waitlist entry is changed to "Invited".' },
+      fields: [
+        { name: 'waitlistInviteSubject', type: 'text', defaultValue: 'A spot has opened up – Neighbourhood Art Studios' },
+        { name: 'waitlistInviteHeading', type: 'text', defaultValue: 'A Spot Has Opened Up!' },
+        { name: 'waitlistInviteIntro', type: 'textarea', defaultValue: 'A spot has opened up in the program you joined the waitlist for. Use the button below to register and claim it.' },
+      ],
+    },
   ],
 }

@@ -198,3 +198,39 @@ export function buildPasswordResetHtml(opts: {
   `
   return wrap(content)
 }
+
+export function buildWaitlistInviteHtml(opts: {
+  heading: string
+  intro: string
+  parentName: string
+  students: string[]
+  program: string
+  school: string
+  season: string
+  registerUrl: string
+  footer: string
+}): string {
+  const rows = [
+    { label: 'Program', value: opts.program },
+    { label: 'School', value: opts.school },
+    { label: 'Season', value: opts.season },
+    { label: opts.students.length > 1 ? 'Students' : 'Student', value: opts.students.join(', ') },
+  ].filter((r) => r.value)
+
+  const content = `
+    <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#3B4BC8;">${esc(opts.heading)}</h1>
+    <p style="margin:0 0 8px;font-size:15px;color:#374151;">Hi ${esc(opts.parentName)},</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#374151;">${esc(opts.intro)}</p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+      ${rows.map((r, i) => `<tr><td style="padding:10px 16px;font-size:14px;font-weight:600;color:#374151;${i ? 'border-top:1px solid #e5e7eb;' : ''}width:40%;">${r.label}</td>
+          <td style="padding:10px 16px;font-size:14px;color:#374151;${i ? 'border-top:1px solid #e5e7eb;' : ''}">${esc(r.value)}</td></tr>`).join('')}
+    </table>
+
+    <p style="margin:0 0 24px;">
+      <a href="${opts.registerUrl}" style="display:inline-block;background:#3B4BC8;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;">Register Now</a>
+    </p>
+    <p style="margin:0;font-size:13px;color:#9ca3af;">${esc(opts.footer)}</p>
+  `
+  return wrap(content)
+}
