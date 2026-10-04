@@ -226,7 +226,7 @@ export default function RosterClient({ rows }: { rows: RosterRow[] }) {
             className="text-xl font-bold text-gray-900 leading-tight"
             style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
           >
-            Student Roster
+            Student Lists
           </h1>
         </div>
         <div className="flex items-center gap-3">

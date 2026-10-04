@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import '../globals.css'
 
 export const metadata: Metadata = {
-  title: 'Student Roster | Neighbourhood Art Studios',
+  title: 'Student Lists | Neighbourhood Art Studios',
 }
 
 export default function RosterLayout({ children }: { children: React.ReactNode }) {

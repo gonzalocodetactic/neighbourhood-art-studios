@@ -33,7 +33,7 @@ export default function PasswordGate() {
             className="text-2xl font-bold text-gray-900"
             style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
           >
-            Student Roster
+            Student Lists
           </h1>
           <p className="text-sm text-gray-500 mt-1">
             Enter the roster password to view student lists.
@@ -60,7 +60,7 @@ export default function PasswordGate() {
             disabled={isPending}
             className="w-full py-2.5 text-sm font-bold text-white bg-[#3B4BC8] rounded-lg hover:bg-[#2D3AAA] disabled:opacity-60 transition-colors"
           >
-            {isPending ? 'Checking…' : 'Unlock Roster'}
+            {isPending ? 'Checking…' : 'Unlock Student Lists'}
           </button>
         </form>
       </div>
