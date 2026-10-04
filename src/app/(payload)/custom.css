@@ -1,0 +1,6 @@
+/* Breadcrumb home link: Payload sizes it for an 18px glyph; give the NAS logo room */
+.step-nav__home {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
