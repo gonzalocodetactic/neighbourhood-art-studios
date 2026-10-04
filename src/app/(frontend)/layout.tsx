@@ -21,10 +21,8 @@ export default async function FrontendLayout({ children }: { children: React.Rea
           logo={headerNav?.logo}
           logoMaxWidth={headerNav?.logoMaxWidth}
         />
-        <div
-          style={{ marginLeft: 'var(--sidebar-width)' }}
-          className="flex min-h-screen flex-col"
-        >
+        {/* Mobile: clear the fixed top bar. Desktop: clear the fixed sidebar. */}
+        <div className="flex min-h-screen flex-col pt-[var(--mobile-header-height)] md:pt-0 md:ml-[var(--sidebar-width)]">
           <main className="flex-1">{children}</main>
           <SiteFooter />
         </div>

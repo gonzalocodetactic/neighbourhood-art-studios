@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 type View = 'login' | 'signup' | 'forgot'
 
 const INPUT = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3B4BC8]/30'
-const BTN_PRIMARY = 'w-full bg-[#3B4BC8] text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-[#2d3aaa] transition disabled:opacity-50'
+const BTN_PRIMARY = 'w-full min-h-11 bg-[#3B4BC8] text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-[#2d3aaa] transition disabled:opacity-50'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -95,7 +95,7 @@ export default function LoginPage() {
                 key={v}
                 type="button"
                 onClick={() => setView(v)}
-                className={`flex-1 py-1.5 text-sm font-medium rounded-full transition ${view === v ? 'bg-white shadow-sm text-[#3B4BC8]' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`flex-1 min-h-11 md:min-h-0 py-1.5 text-sm font-medium rounded-full transition ${view === v ? 'bg-white shadow-sm text-[#3B4BC8]' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 {v === 'login' ? 'Sign In' : 'Create Account'}
               </button>
@@ -119,7 +119,7 @@ export default function LoginPage() {
               {isPending ? 'Signing in…' : 'Sign In'}
             </button>
             <p className="text-center text-sm text-gray-500">
-              <button type="button" onClick={() => setView('forgot')} className="text-[#3B4BC8] underline">
+              <button type="button" onClick={() => setView('forgot')} className="inline-block py-3 md:py-0 text-[#3B4BC8] underline">
                 Forgot password?
               </button>
             </p>

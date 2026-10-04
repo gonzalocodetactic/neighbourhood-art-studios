@@ -210,7 +210,7 @@ function SchoolSearch({
                   setQuery(s.title)
                   setOpen(false)
                 }}
-                className={`px-4 py-2 text-sm cursor-pointer transition-colors ${
+                className={`px-4 py-3 md:py-2 text-sm cursor-pointer transition-colors ${
                   String(s.id) === value
                     ? 'bg-[#3B4BC8]/10 text-[#3B4BC8] font-semibold'
                     : 'text-gray-700 hover:bg-gray-50'
@@ -291,14 +291,14 @@ function ProgramCard({
         {isFull ? (
           <button
             onClick={() => onWaitlist(variation)}
-            className="w-full py-2.5 text-sm font-semibold text-white bg-gray-800 rounded-lg hover:bg-gray-900 active:scale-[0.98] transition-all"
+            className="w-full min-h-11 py-2.5 text-sm font-semibold text-white bg-gray-800 rounded-lg hover:bg-gray-900 active:scale-[0.98] transition-all"
           >
             Join Waitlist
           </button>
         ) : (
           <button
             onClick={() => onRegister(variation)}
-            className="w-full py-2.5 text-sm font-semibold text-white bg-[#3B4BC8] rounded-lg hover:bg-[#2D3AAA] active:scale-[0.98] transition-all"
+            className="w-full min-h-11 py-2.5 text-sm font-semibold text-white bg-[#3B4BC8] rounded-lg hover:bg-[#2D3AAA] active:scale-[0.98] transition-all"
           >
             Register Now
           </button>
@@ -365,7 +365,7 @@ function CampProgramCard({
         <button
           onClick={() => onRegister(session)}
           disabled={isFull}
-          className={`w-full py-2.5 text-sm font-semibold text-white rounded-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`w-full min-h-11 py-2.5 text-sm font-semibold text-white rounded-lg active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
             isFull ? 'bg-gray-400' : 'bg-[#3B4BC8] hover:bg-[#2D3AAA]'
           }`}
         >
@@ -546,14 +546,14 @@ function RegistrationModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl mx-4">
+      <div className="relative z-10 w-full md:max-w-lg h-[100dvh] md:h-auto md:max-h-[90vh] overflow-y-auto overscroll-contain bg-white md:rounded-2xl shadow-2xl md:mx-4">
         {/* Header */}
-        <div className="sticky top-0 z-[20] bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 z-[20] bg-white border-b border-gray-100 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between md:rounded-t-2xl">
           <div>
             <h2
               className="text-lg font-bold text-gray-900"
@@ -568,13 +568,13 @@ function RegistrationModal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
+            className="w-11 h-11 -mr-2 flex-shrink-0 flex items-center justify-center text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
           >
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+        <form onSubmit={handleSubmit} className="px-4 md:px-6 pt-5 space-y-6">
           {/* Parent Info */}
           <section>
             <div className="flex items-baseline justify-between mb-3">
@@ -669,7 +669,7 @@ function RegistrationModal({
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
               Student{students.length !== 1 ? 's' : ''}
             </h3>
-            <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+            <div className="space-y-3 md:max-h-[55vh] md:overflow-y-auto md:pr-1">
               {students.map((student, idx) => (
                 <div key={idx} className="border border-gray-200 rounded-xl p-3 space-y-2 relative">
                   {students.length > 1 && (
@@ -741,7 +741,7 @@ function RegistrationModal({
             <button
               type="button"
               onClick={addStudent}
-              className="mt-3 text-sm font-medium text-[#3B4BC8] hover:text-[#2D3AAA] transition-colors flex items-center gap-1"
+              className="mt-3 min-h-11 text-sm font-medium text-[#3B4BC8] hover:text-[#2D3AAA] transition-colors flex items-center gap-1"
             >
               <span className="text-lg leading-none">+</span> Add another student
             </button>
@@ -842,7 +842,7 @@ function RegistrationModal({
                 <button
                   type="button"
                   onClick={() => setTermsOpen((o) => !o)}
-                  className="text-[#3B4BC8] underline hover:text-[#2D3AAA] font-medium"
+                  className="inline-flex items-center min-h-11 md:min-h-0 align-middle text-[#3B4BC8] underline hover:text-[#2D3AAA] font-medium"
                 >
                   terms and conditions
                 </button>
@@ -862,26 +862,28 @@ function RegistrationModal({
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={isPending || !agreedToTerms}
-            className="w-full py-3 text-sm font-bold text-white bg-[#3B4BC8] rounded-xl hover:bg-[#2D3AAA] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
-          >
-            {isPending
-              ? 'Redirecting to payment…'
-              : gstSettings.gstEnabled
-                ? `Proceed to Payment — ${formatPrice(subtotal)} + ${gstSettings.gstRate}% GST (${formatPrice(totalAmount)})`
-                : `Proceed to Payment — ${formatPrice(totalAmount)}`
-            }
-          </button>
-
-          <p className="text-center font-bold text-sm text-slate-800 mt-2">
+          <p className="text-center font-bold text-sm text-slate-800">
             Pay via cheque or cash via call to (604) 536-7900
           </p>
 
-          <p className="text-[11px] text-center text-gray-400">
-            You'll be redirected to our secure Moneris payment page to complete checkout.
-          </p>
+          {/* Pinned to the bottom of the sheet so the action never scrolls out of view */}
+          <div className="sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white border-t border-gray-100">
+            <button
+              type="submit"
+              disabled={isPending || !agreedToTerms}
+              className="w-full min-h-12 py-3 text-sm font-bold text-white bg-[#3B4BC8] rounded-xl hover:bg-[#2D3AAA] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+            >
+              {isPending
+                ? 'Redirecting to payment…'
+                : gstSettings.gstEnabled
+                  ? `Proceed to Payment — ${formatPrice(subtotal)} + ${gstSettings.gstRate}% GST (${formatPrice(totalAmount)})`
+                  : `Proceed to Payment — ${formatPrice(totalAmount)}`
+              }
+            </button>
+            <p className="mt-2 text-[11px] text-center text-gray-400">
+              You'll be redirected to our secure Moneris payment page to complete checkout.
+            </p>
+          </div>
         </form>
       </div>
     </div>
@@ -940,7 +942,7 @@ function WaitlistModal({
 
   if (submitted) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onSuccess} />
         <div className="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl mx-4 p-8 text-center">
           <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5">
@@ -980,10 +982,10 @@ function WaitlistModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl mx-4">
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+      <div className="relative z-10 w-full md:max-w-lg h-[100dvh] md:h-auto md:max-h-[90vh] overflow-y-auto overscroll-contain bg-white md:rounded-2xl shadow-2xl md:mx-4">
+        <div className="sticky top-0 z-[20] bg-white border-b border-gray-100 px-4 md:px-6 py-3 md:py-4 flex items-center justify-between md:rounded-t-2xl">
           <div>
             <h2 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Georgia, serif' }}>
               Join Waitlist
@@ -995,13 +997,13 @@ function WaitlistModal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
+            className="w-11 h-11 -mr-2 flex-shrink-0 flex items-center justify-center text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
           >
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-6">
+        <form onSubmit={handleSubmit} className="px-4 md:px-6 pt-5 space-y-6">
           <section>
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">
               Parent / Guardian
@@ -1081,17 +1083,18 @@ function WaitlistModal({
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-full py-3 text-sm font-bold text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
-          >
-            {isPending ? 'Joining Waitlist…' : 'Join Waitlist'}
-          </button>
-
-          <p className="text-[11px] text-center text-gray-400">
-            We'll notify you by email when a spot becomes available.
-          </p>
+          <div className="sticky bottom-0 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white border-t border-gray-100">
+            <button
+              type="submit"
+              disabled={isPending}
+              className="w-full min-h-12 py-3 text-sm font-bold text-white bg-gray-800 rounded-xl hover:bg-gray-900 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all"
+            >
+              {isPending ? 'Joining Waitlist…' : 'Join Waitlist'}
+            </button>
+            <p className="mt-2 text-[11px] text-center text-gray-400">
+              We'll notify you by email when a spot becomes available.
+            </p>
+          </div>
         </form>
       </div>
     </div>
@@ -1410,7 +1413,7 @@ export default function RegisterClient({
         </p>
       </div>
 
-      <div className="max-w-2xl mx-auto px-8 py-12">
+      <div className="max-w-2xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
 
         {/* ── Program type selector ─────────────────────────────────────────── */}
         <div className="mb-10">
@@ -1544,7 +1547,7 @@ export default function RegisterClient({
                       key={s.id}
                       type="button"
                       onClick={() => setSeasonId(String(s.id))}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                      className={`min-h-11 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
                         String(s.id) === seasonId
                           ? 'border-[#3B4BC8] bg-[#3B4BC8] text-white'
                           : 'border-gray-300 text-gray-600 hover:border-[#3B4BC8] hover:text-[#3B4BC8]'
@@ -1595,7 +1598,7 @@ export default function RegisterClient({
                     key={loc.id}
                     type="button"
                     onClick={() => { setCampLocationId(String(loc.id)); setCampTimeslotId(''); setCampWeekId('') }}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                    className={`min-h-11 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
                       String(loc.id) === campLocationId
                         ? 'border-[#3B4BC8] bg-[#3B4BC8] text-white'
                         : 'border-gray-300 text-gray-600 hover:border-[#3B4BC8] hover:text-[#3B4BC8]'
@@ -1623,7 +1626,7 @@ export default function RegisterClient({
                       key={ts.id}
                       type="button"
                       onClick={() => { setCampTimeslotId(String(ts.id)); setCampWeekId('') }}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                      className={`min-h-11 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
                         String(ts.id) === campTimeslotId
                           ? 'border-[#3B4BC8] bg-[#3B4BC8] text-white'
                           : 'border-gray-300 text-gray-600 hover:border-[#3B4BC8] hover:text-[#3B4BC8]'
@@ -1649,7 +1652,7 @@ export default function RegisterClient({
                       key={w.id}
                       type="button"
                       onClick={() => setCampWeekId(String(w.id))}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                      className={`min-h-11 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
                         String(w.id) === campWeekId
                           ? 'border-[#3B4BC8] bg-[#3B4BC8] text-white'
                           : 'border-gray-300 text-gray-600 hover:border-[#3B4BC8] hover:text-[#3B4BC8]'

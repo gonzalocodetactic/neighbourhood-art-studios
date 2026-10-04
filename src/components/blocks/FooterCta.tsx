@@ -29,7 +29,7 @@ export function FooterCta({
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/55" />
 
-      <div className="relative z-10 px-12 py-16 max-w-2xl mx-auto">
+      <div className="relative z-10 px-6 md:px-12 py-12 md:py-16 max-w-2xl mx-auto">
         {topTagline && (
           <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/60">
             {topTagline}

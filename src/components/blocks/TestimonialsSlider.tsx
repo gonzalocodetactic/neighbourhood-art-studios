@@ -27,7 +27,7 @@ export function TestimonialsSlider({ subtitle, title, testimonials = [] }: Testi
   const { quote, clientName, clientSubtext } = testimonials[current]
 
   return (
-    <section className="py-20 px-12 bg-white">
+    <section className="py-12 md:py-20 px-4 md:px-12 bg-white">
       {/* Heading */}
       <div className="text-center mb-10">
         {subtitle && (
@@ -50,7 +50,7 @@ export function TestimonialsSlider({ subtitle, title, testimonials = [] }: Testi
         <button
           onClick={prev}
           aria-label="Previous testimonial"
-          className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-xl"
+          className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-xl"
         >
           ‹
         </button>
@@ -77,7 +77,7 @@ export function TestimonialsSlider({ subtitle, title, testimonials = [] }: Testi
         <button
           onClick={next}
           aria-label="Next testimonial"
-          className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-xl"
+          className="flex-shrink-0 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors text-xl"
         >
           ›
         </button>

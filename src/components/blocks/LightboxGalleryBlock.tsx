@@ -108,7 +108,7 @@ export function LightboxGalleryBlock({ title, images = [] }: Props) {
             <button
               type="button"
               onClick={e => { e.stopPropagation(); prev() }}
-              className="absolute left-4 text-white/70 hover:text-white text-5xl font-light leading-none transition-colors select-none"
+              className="absolute left-2 md:left-4 w-11 h-11 flex items-center justify-center text-white/70 hover:text-white text-5xl font-light leading-none transition-colors select-none"
               aria-label="Previous image"
             >
               ‹
@@ -129,7 +129,7 @@ export function LightboxGalleryBlock({ title, images = [] }: Props) {
             <button
               type="button"
               onClick={e => { e.stopPropagation(); next() }}
-              className="absolute right-4 text-white/70 hover:text-white text-5xl font-light leading-none transition-colors select-none"
+              className="absolute right-2 md:right-4 w-11 h-11 flex items-center justify-center text-white/70 hover:text-white text-5xl font-light leading-none transition-colors select-none"
               aria-label="Next image"
             >
               ›

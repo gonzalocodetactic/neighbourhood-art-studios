@@ -26,7 +26,7 @@ const AVATAR_GRADIENTS = [
 
 export function InstructorsGrid({ subtitle, title, instructors = [] }: InstructorsGridProps) {
   return (
-    <section className="py-16 px-12 bg-white">
+    <section className="py-12 md:py-16 px-6 md:px-12 bg-white">
       <div className="text-center mb-12">
         {subtitle && (
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-400">

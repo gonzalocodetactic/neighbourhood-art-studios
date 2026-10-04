@@ -80,7 +80,7 @@ function FlipCard({ card, index }: { card: ProgramCard; index: number }) {
 
 export function ProgramFlipCards({ subtitle, title, cards = [] }: ProgramFlipCardsProps) {
   return (
-    <section className="py-16 px-12" style={{ backgroundColor: 'var(--nas-bg-gray)' }}>
+    <section className="py-12 md:py-16 px-6 md:px-12" style={{ backgroundColor: 'var(--nas-bg-gray)' }}>
       <div className="text-center mb-10">
         {subtitle && (
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-400">

@@ -118,7 +118,7 @@ export function CascadingMediaContent({
   )
 
   return (
-    <section className="py-16 px-12">
+    <section className="py-12 md:py-16 px-6 md:px-12">
       {/* Exact 50/50: equal fractional columns, media column fills its half */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center w-full">
         {direction === 'imageLeft' ? (

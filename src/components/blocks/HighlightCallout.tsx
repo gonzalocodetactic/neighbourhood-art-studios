@@ -13,7 +13,7 @@ export function HighlightCallout({
 }: HighlightCalloutProps) {
   return (
     <section
-      className="flex items-center justify-between gap-8 px-12 py-8"
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-8 px-6 md:px-12 py-8"
       style={{ backgroundColor: backgroundColor ?? '#3B4BC8' }}
     >
       <p className="text-white text-base md:text-lg font-medium leading-snug max-w-xl">
@@ -23,7 +23,7 @@ export function HighlightCallout({
       {ctaLabel && (
         <a
           href={ctaLink ?? '#'}
-          className="flex-shrink-0 px-6 py-2.5 text-sm font-semibold text-white border border-white/70 rounded hover:bg-white hover:text-[#3B4BC8] transition-colors whitespace-nowrap"
+          className="flex-shrink-0 px-6 py-3 text-sm font-semibold text-white border border-white/70 rounded hover:bg-white hover:text-[#3B4BC8] transition-colors whitespace-nowrap"
         >
           {ctaLabel}
         </a>

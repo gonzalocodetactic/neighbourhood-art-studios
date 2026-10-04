@@ -81,7 +81,7 @@ export default async function SiteFooter() {
 
   return (
     <footer className="bg-black text-white">
-      <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-10 px-12 py-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[auto_1fr_1fr_1fr] gap-8 md:gap-10 px-6 md:px-12 py-10 md:py-12">
         {/* Column 1: Logo */}
         <div className="flex items-start">
           <div className="bg-white rounded-full p-1">
@@ -106,10 +106,10 @@ export default async function SiteFooter() {
           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
             Navigator
           </h4>
-          <ul className="space-y-2">
+          <ul className="md:space-y-2">
             {navLinks.map((item, idx) => (
               <li key={`${item.url}-${idx}`}>
-                <a href={item.url} className="text-xs text-gray-300 hover:text-white transition-colors">
+                <a href={item.url} className="flex items-center min-h-11 md:min-h-0 md:inline text-sm md:text-xs text-gray-300 hover:text-white transition-colors">
                   {item.label}
                 </a>
               </li>
@@ -122,12 +122,12 @@ export default async function SiteFooter() {
           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
             {contactHeading}
           </h4>
-          <address className="not-italic space-y-2">
+          <address className="not-italic md:space-y-2">
             {location && <p className="text-xs text-gray-300">{location}</p>}
             {phone && (
               <a
                 href={`tel:${phone.replace(/\D/g, '')}`}
-                className="block text-xs text-gray-300 hover:text-white transition-colors"
+                className="flex items-center min-h-11 md:min-h-0 md:block text-sm md:text-xs text-gray-300 hover:text-white transition-colors"
               >
                 {phone}
               </a>
@@ -135,7 +135,7 @@ export default async function SiteFooter() {
             {email && (
               <a
                 href={`mailto:${email}`}
-                className="block text-xs text-gray-300 hover:text-white transition-colors break-all"
+                className="flex items-center min-h-11 md:min-h-0 md:block text-sm md:text-xs text-gray-300 hover:text-white transition-colors break-all"
               >
                 {email}
               </a>
@@ -148,14 +148,14 @@ export default async function SiteFooter() {
           <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
             {socialHeading}
           </h4>
-          <ul className="space-y-2">
+          <ul className="md:space-y-2">
             {socialLinks.map((s) => (
               <li key={s.label}>
                 <a
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs text-gray-300 hover:text-white transition-colors"
+                  className="flex items-center gap-2 min-h-11 md:min-h-0 text-sm md:text-xs text-gray-300 hover:text-white transition-colors"
                 >
                   <SocialIcon icon={s.icon} />
                   {s.label}
@@ -166,7 +166,7 @@ export default async function SiteFooter() {
         </div>
       </div>
 
-      <div className="border-t border-gray-800 px-12 py-3 flex items-center justify-between">
+      <div className="border-t border-gray-800 px-6 md:px-12 py-3 flex flex-col sm:flex-row items-center justify-between gap-1">
         <p className="text-[10px] text-gray-600">{creditText}</p>
         <p className="text-[10px] text-gray-600">{copyrightText}</p>
       </div>
